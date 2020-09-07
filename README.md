@@ -5,8 +5,7 @@ pytogle is in it's very early stages and for now only has implemented a wrapper 
 
 For now theres no pip package for the module so you"ll have to download the files manualy to the folder in which your python packages are installed.
 
-```
-bash
+``` bash
 git clone https://github.com/dermasmid/pytogle
 ```
 
@@ -16,8 +15,7 @@ after you saved the json file to your workdir - you are all set!
 
 to use the gmail api simply create a python file and enter this:
 
-```
-python
+``` python
 from pytogle import Gmail
 
 mailbox = Gmail()
