@@ -47,6 +47,16 @@ class Gmail(GmailBase):
 
 
     @property
+    def sender_name(self):
+        return self.user.get('sender_name')
+
+
+    @sender_name.setter
+    def sender_name(self, sender_name):
+        self.user['sender_name'] = sender_name
+
+
+    @property
     def history_id(self):
         return self.user.get("historyId")
 
@@ -149,7 +159,7 @@ class Gmail(GmailBase):
         in_reply_to: str = None,
         thread_id: str = None
         ):
-        message = make_message(self.email_address, to, cc, bcc, subject, text, html, attachments, references, in_reply_to)
+        message = make_message(self.email_address, self.sender_name, to, cc, bcc, subject, text, html, attachments, references, in_reply_to)
         b64 = base64.urlsafe_b64encode(message).decode()
         body = {'raw': b64}
         if thread_id:

@@ -68,6 +68,7 @@ def decode(header: str):
 
 def make_message(
     from_: str,
+    sender_name: str = None,
     to: list or str = None,
     cc: list or str = None,
     bcc: list or str = None,
@@ -81,7 +82,7 @@ def make_message(
 
     message = MIMEMultipart("mixed")
     message["Subject"] = subject
-    message["From"] = from_
+    message["From"] = from_ if not sender_name else f'{sender_name} <{from_}>'
 
     if isinstance(to, list):
         message["To"] = ", ".join(to)
