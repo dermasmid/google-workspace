@@ -9,7 +9,7 @@ For now theres no pip package for the module so you"ll have to download the file
 git clone https://github.com/dermasmid/pytogle
 ```
 
-Then you need to get a client secret file from [the google console] (https://console.developers.google.com/) and you need to enable the api you want to use, just google it.
+Then you need to get a client secret file from [the google console](https://console.developers.google.com/) and you need to enable the api you want to use, just google it.
 
 after you saved the json file to your workdir - you are all set!
 
