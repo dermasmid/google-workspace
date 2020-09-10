@@ -62,6 +62,9 @@ class Message:
         return message
 
 
+    def remove_label(self, label_id: str):
+        message = self.mailbox.service.message_service.modify(userId= 'me', id= self.gmail_id, body= {'removeLabelIds': [get_label_id(label_id)]}).execute()
+        return message
 
     def mark_read(self):
         message = self.mailbox.service.message_service.modify(userId= 'me', id= self.gmail_id, body= {'removeLabelIds': ['UNREAD']}).execute()
