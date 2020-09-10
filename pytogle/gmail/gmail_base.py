@@ -26,7 +26,7 @@ class GmailBase:
             'historyTypes': history_types
         }
         if label_id:
-            perams['labelId'] = label_id
+            perams['labelId'] = label_id # there's a bug that the api returns sent emails that are a reply
         data = self.service.history_service.list(**perams).execute()
         return data
 

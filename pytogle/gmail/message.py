@@ -129,15 +129,15 @@ class Attachment:
         return decode(self._part.get_filename())
 
 
+    @property
+    def payload(self):
+        data = self._part.get_payload(decode= True)
+        return data
+
+
     def download(self, path: str = None):
         path = path or self.filename
-        maintype = self._part.get_content_maintype()
-        data = self._part.get_payload(decode= True)
-        if maintype == "text":
-            mode = "w"
-            data = data.decode()
-        else:
-            mode = "wb"
-        with open(path, mode) as f:
+        data = self.payload
+        with open(path, "wb") as f:
             f.write(data)
         return path

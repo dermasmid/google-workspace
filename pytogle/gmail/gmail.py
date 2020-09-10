@@ -124,12 +124,14 @@ class Gmail(GmailBase):
         return Message(raw_message, self)
 
 
-    def handle_new_messages(self, func, handle_old_unread: bool = False, sleep: int = 3):
+    def handle_new_messages(self, func, handle_old_unread: bool = False, sleep: int = 3, mark_read: bool = False):
         history_id = self.history_id
         if handle_old_unread:
             msgs = self.get_messages('inbox', seen= False)
             for msg in msgs:
                 func(msg)
+                if mark_read:
+                    msg.mark_read()
         while True:
             print(f"Checking for messages - {datetime.now()}")
             data = self._get_history_data(history_id, ['messageAdded'], label_id= 'INBOX')
@@ -140,9 +142,12 @@ class Gmail(GmailBase):
                     messages = history.get('messages')
                     if messages:
                         for message in messages:
-                            print("New message")
                             msg = self.get_message_by_id(message['id'])
-                            func(msg)
+                            if 'INBOX' in msg.label_ids: # even if i asked for inbox, the results inculed msgs that are replys
+                                print("New message") # for debugging
+                                func(msg)
+                                if mark_read:
+                                    msg.mark_read()
             time.sleep(sleep)
 
 

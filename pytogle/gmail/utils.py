@@ -42,9 +42,9 @@ def get_full_address_data(raw: list or bool):
 def parse_date(date: str) -> datetime:
     if not date is None: # for chat messages that have no date
         if "," in date:
-            data = datetime.strptime(date[:24], "%a, %d %b %Y %H:%M:%S")
+            data = datetime.strptime(date[:25].strip(), "%a, %d %b %Y %H:%M:%S")
         else:
-            data = datetime.strptime(date[:20], "%d %b %Y %H:%M:%S") # edge case of getting "19 Aug 2020 11:05:13 -04" without weekday
+            data = datetime.strptime(date[:20].strip(), "%d %b %Y %H:%M:%S") # edge case of getting "19 Aug 2020 11:05:13 -04" without weekday
     else:
         data = date
     return data
