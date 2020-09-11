@@ -32,6 +32,7 @@ class GoogleService(Resource):
         self.api = api
         self.pickle_file = f"{self.session}.pickle"
         self.is_authenticated = os.path.exists(self.pickle_file)
+
         if service:
             if isinstance(service, Resource):
                 self._add_service_methods(service)
@@ -57,17 +58,19 @@ class GoogleService(Resource):
 
 
         else:
-            self.client_secrets = get_creds_file(client_secrets)
-            self.scopes = list(scope.scope_code for scope in scopes or get_default_scopes(self.api))
-            self.auth_type = auth_type or LocalAuth()
             if self.is_authenticated:
                 self._get_service()
+            else:
+                self.client_secrets = get_creds_file(client_secrets)
+                self.scopes = list(scope.scope_code for scope in scopes or get_default_scopes(self.api))
+                self.auth_type = auth_type or LocalAuth()
 
-            elif isinstance(self.auth_type, LocalAuth):
-                self.authenticate_local()
 
-            elif isinstance(self.auth_type, UrlAuth):
-                _fix_google_ster_issues()
+                if isinstance(self.auth_type, LocalAuth):
+                    self.authenticate_local()
+
+                elif isinstance(self.auth_type, UrlAuth):
+                    _fix_google_ster_issues()
 
     
 
