@@ -49,7 +49,11 @@ class Message:
                     if self.is_chat_message:
                         data = part.get_payload()
                     else:
-                        data = part.get_payload(decode= True).decode(encoding or 'utf-8', "ignore")
+                        data = part.get_payload(decode= True)
+                        try:
+                            data = data.decode(encoding or 'utf-8', "ignore")
+                        except LookupError:
+                            data = data.decode('utf-8', "ignore")
                     setattr(self, text_parts[mimetype], data)
 
             else:
