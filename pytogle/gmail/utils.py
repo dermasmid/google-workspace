@@ -13,7 +13,12 @@ from datetime import datetime
 
 
 
-
+def is_english_chars(chars: str):
+    try:
+        chars.encode('utf-8').decode('ascii')
+        return True
+    except UnicodeDecodeError:
+        return False
 
 
 def get_emails_address(raw: list or bool):

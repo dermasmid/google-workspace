@@ -1,7 +1,7 @@
 import base64
 from datetime import date, datetime
 from ..service import GoogleService
-from .utils import make_message, make_label_dict, get_label_id
+from .utils import make_message, make_label_dict, get_label_id, is_english_chars
 from .message import Message
 from .label import Label
 from .scopes import ReadonlyGmailScope
@@ -53,6 +53,9 @@ class Gmail(GmailBase):
 
     @sender_name.setter
     def sender_name(self, sender_name):
+        if not is_english_chars(sender_name):
+            b64_sender_name = base64.b64encode(sender_name.encode('utf-8')).decode('ascii')
+            sender_name = f"=?UTF-8?B?{b64_sender_name}?="
         self.user['sender_name'] = sender_name
 
 
