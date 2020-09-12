@@ -21,7 +21,7 @@ class Label:
         self.color = raw_label.get('color')
 
 
-    def __str__(self):
+    def __repr__(self):
         return str(self.raw_label)
 
 
