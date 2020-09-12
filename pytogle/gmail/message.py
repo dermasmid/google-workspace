@@ -22,8 +22,9 @@ class Message:
         self.to = get_emails_address(self.mail_obj["To"])
         self.cc = get_emails_address(self.mail_obj["Cc"])
         self.bcc = get_emails_address(self.mail_obj["Bcc"])
-        self.from_ = get_emails_address(self.mail_obj["From"])[0]
-        self.from_name = get_full_address_data(self.mail_obj["From"])[0]["name"]
+        self.raw_from = self.mail_obj["From"]
+        self.from_ = get_emails_address(self.raw_from)[0]
+        self.from_name = get_full_address_data(self.raw_from)[0]["name"]
         self.raw_date = self.mail_obj["Date"]
         self.date = parse_date(self.raw_date)
         self.text = ''
@@ -103,7 +104,7 @@ class Message:
         else:
             references = self.message_id
         data = self.mailbox.send_message(
-            to= self.from_,
+            to= self.raw_from,
             subject= f"Re: {self.subject}",
             text= text,
             html= html,
