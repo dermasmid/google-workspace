@@ -1,6 +1,7 @@
 import email
 import base64
 from .utils import get_emails_address, get_full_address_data, parse_date, decode, get_label_id
+import chardet
 
 
 class Message:
@@ -11,7 +12,12 @@ class Message:
         self.thread_id = raw_message["threadId"]
         self.label_ids = raw_message["labelIds"]
         self.mailbox = mailbox
-        self.mail_obj = email.message_from_string(base64.urlsafe_b64decode(raw_message["raw"]).decode())
+        try:
+            self.mail_obj = email.message_from_string(base64.urlsafe_b64decode(raw_message["raw"]).decode())
+        except UnicodeDecodeError: # i can do this every time but the detection takes 0.1 secs - which i think is long
+            data = base64.urlsafe_b64decode(raw_message["raw"])
+            encoding = chardet.detect(data)['encoding']
+            self.mail_obj = email.message_from_string(data.decode(encoding))
         self.is_seen = "UNREAD" in self.label_ids
         self.is_chat_message = "CHAT" in self.label_ids
         self.in_reply_to = self.mail_obj['In-Reply-To']
@@ -100,7 +106,7 @@ class Message:
         attachments: list = []
         ):
         if self.is_reply:
-            references = self.references + " "  + self.message_id
+            references = self.references + " " + self.message_id
         else:
             references = self.message_id
         data = self.mailbox.send_message(
