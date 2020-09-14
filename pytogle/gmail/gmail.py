@@ -137,20 +137,14 @@ class Gmail(GmailBase):
                     msg.mark_read()
         while True:
             print(f"Checking for messages - {datetime.now()}")
-            data = self._get_history_data(history_id, ['messageAdded'], label_id= 'INBOX')
-            historys = data.get("history")
-            if historys:
-                history_id = data['historyId']
-                for history in historys:
-                    messages = history.get('messages')
-                    if messages:
-                        for message in messages:
-                            msg = self.get_message_by_id(message['id'])
-                            if 'INBOX' in msg.label_ids: # even if i asked for inbox, the results inculed msgs that are replys
-                                print("New message") # for debugging
-                                func(msg)
-                                if mark_read:
-                                    msg.mark_read()
+            results = self._get_history_data(history_id, ['messageAdded'], label_id= 'INBOX')
+            history_id = results['history_id']
+            for message_id in results.get('messagesAdded', []):
+                print("New message!")
+                message = self.get_message_by_id(message_id)
+                func(message)
+                if mark_read:
+                    message.mark_read()
             time.sleep(sleep)
 
 

@@ -26,9 +26,23 @@ class GmailBase:
             'historyTypes': history_types
         }
         if label_id:
-            perams['labelId'] = label_id # there's a bug that the api returns sent emails that are a reply
+            perams['labelId'] = label_id    # there's a bug that the api returns sent and draft emails that are a reply
         data = self.service.history_service.list(**perams).execute()
-        return data
+        results = {}
+        results['history_id'] = data['historyId']
+        histories = data.get("history")
+        if histories:
+            for history in histories:
+                del history['messages']
+                del history['id']
+                for returned_type in history:
+                    if not returned_type in results:
+                        results[returned_type] = []
+                    for message in history[returned_type]:
+                        message = message['message']
+                        if label_id in message['labelIds']:
+                            results[returned_type].append(message['id'])
+        return results
 
 
     def _get_labels(self):
