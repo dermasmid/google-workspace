@@ -13,12 +13,19 @@ from datetime import datetime
 
 
 
-def is_english_chars(chars: str):
+def is_english_chars(string: str):
     try:
-        chars.encode('utf-8').decode('ascii')
+        string.encode('utf-8').decode('ascii')
         return True
     except UnicodeDecodeError:
         return False
+
+
+def encode_if_not_english(string: str):
+    if not is_english_chars(string):
+        b64_string = base64.b64encode(string.encode('utf-8')).decode('ascii')
+        string = f"=?UTF-8?B?{b64_string}?="
+    return string
 
 
 def get_emails_address(raw: list or bool):
@@ -149,7 +156,7 @@ def make_message(
         else:
             attachment = MIMEBase(main_type, sub_type)
             attachment.set_payload(data)
-        attachment.add_header('Content-Disposition', 'attachment', filename= file_name)
+        attachment.add_header('Content-Disposition', 'attachment', filename= encode_if_not_english(file_name))
         message.attach(attachment)
     
     return message.as_string().encode()
