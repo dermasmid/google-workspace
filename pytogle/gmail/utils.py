@@ -10,7 +10,7 @@ from mimetypes import guess_type
 import magic
 import os
 from datetime import datetime
-
+import base64
 
 
 def is_english_chars(string: str):
