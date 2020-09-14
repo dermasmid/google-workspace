@@ -24,7 +24,7 @@ class Message:
         self.references = self.mail_obj['References']
         self.is_reply = bool(self.in_reply_to)
         self.message_id = self.mail_obj["Message-Id"]
-        self.subject = decode(self.mail_obj["Subject"])
+        self.subject = decode(self.mail_obj["Subject"]) or ''
         self.to = get_emails_address(self.mail_obj["To"])
         self.cc = get_emails_address(self.mail_obj["Cc"])
         self.bcc = get_emails_address(self.mail_obj["Bcc"])
@@ -43,6 +43,12 @@ class Message:
     def __str__(self):
         return f"Message From: {self.from_}, Subject: {self.subject}, Date: {self.date}"
 
+
+    def __contains__(self, item):
+        if item in self.subject or item in self.text or item in self.html:
+            return True
+        else:
+            return False
 
     def _get_parts(self):
         text_parts = {"text/plain": "text", "text/html": "html"}
