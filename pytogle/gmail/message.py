@@ -38,6 +38,7 @@ class Message:
         self.attachments = []
         self._get_parts()
         self.html_text = get_html_text(self.html)
+        self.has_attachments = any(not attachment.is_inline for attachment in self.attachments) # this is if you what to know if the message has a real attachment
   
 
 
@@ -143,6 +144,8 @@ class Attachment:
 
     def __init__(self, attachment_part):
         self._part = attachment_part
+        self.is_inline = attachment_part.get('Content-Disposition').startswith('inline')
+        self.content_id = attachment_part.get('Content-ID')
         
 
     @property
@@ -162,3 +165,7 @@ class Attachment:
         with open(path, "wb") as f:
             f.write(data)
         return path
+
+
+    def __repr__(self):
+        return self.filename
