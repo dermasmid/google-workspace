@@ -11,6 +11,12 @@ import magic
 import os
 from datetime import datetime
 import base64
+from html.parser import HTMLParser
+
+
+def _handle_data(self, data):
+    self.text += data + '\n'
+HTMLParser.handle_data = _handle_data
 
 
 def is_english_chars(string: str):
@@ -206,3 +212,13 @@ def get_label_id(label_id: str):
         label_id = label_id.upper()
 
     return label_id
+
+
+
+
+def get_html_text(html: str):
+    parser = HTMLParser()
+    parser.text = ''
+    parser.feed(html)
+
+    return parser.text.strip()

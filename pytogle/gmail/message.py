@@ -1,6 +1,6 @@
 import email
 import base64
-from .utils import get_emails_address, get_full_address_data, parse_date, decode, get_label_id
+from .utils import get_emails_address, get_full_address_data, parse_date, decode, get_label_id, get_html_text
 import chardet
 
 
@@ -37,6 +37,7 @@ class Message:
         self.html = ''
         self.attachments = []
         self._get_parts()
+        self.html_text = get_html_text(self.html)
   
 
 
@@ -45,7 +46,7 @@ class Message:
 
 
     def __contains__(self, item):
-        if item in self.subject or item in self.text or item in self.html:
+        if item in self.subject or item in self.text or item in self.html_text:
             return True
         else:
             return False
