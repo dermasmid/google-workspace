@@ -33,6 +33,7 @@ class Message:
         self.from_name = get_full_address_data(self.raw_from)[0]["name"]
         self.raw_date = self.mail_obj["Date"]
         self.date = parse_date(self.raw_date)
+        self.is_bulk = self.mail_obj['Precedence'] == 'bulk'
         self.text = ''
         self.html = ''
         self.attachments = []
@@ -58,18 +59,17 @@ class Message:
             if part.get_content_maintype() == "multipart":
                 continue
             mimetype = part.get_content_type()
-            if not part.get('Content-Disposition'):
-                if mimetype in text_parts.keys():
-                    encoding = part.get_content_charset()
-                    if self.is_chat_message:
-                        data = part.get_payload()
-                    else:
-                        data = part.get_payload(decode= True)
-                        try:
-                            data = data.decode(encoding or 'utf-8', "ignore")
-                        except LookupError:
-                            data = data.decode('utf-8', "ignore")
-                    setattr(self, text_parts[mimetype], data)
+            if not part.get('Content-Disposition') and mimetype in text_parts:
+                encoding = part.get_content_charset()
+                if self.is_chat_message:
+                    data = part.get_payload()
+                else:
+                    data = part.get_payload(decode= True)
+                    try:
+                        data = data.decode(encoding or 'utf-8', "ignore")
+                    except LookupError:
+                        data = data.decode('utf-8', "ignore")
+                setattr(self, text_parts[mimetype], data)
 
             else:
                 self.attachments.append(Attachment(part))
@@ -144,13 +144,13 @@ class Attachment:
 
     def __init__(self, attachment_part):
         self._part = attachment_part
-        self.is_inline = attachment_part.get('Content-Disposition').startswith('inline')
+        self.is_inline = attachment_part.get('Content-Disposition', '').startswith('inline')
         self.content_id = attachment_part.get('Content-ID')
         
 
     @property
     def filename(self):
-        return decode(self._part.get_filename())
+        return decode(self._part.get_filename()) or ''
 
 
     @property

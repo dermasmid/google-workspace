@@ -3,7 +3,7 @@ from datetime import date, datetime
 from ..service import GoogleService
 from .utils import make_message, make_label_dict, get_label_id, encode_if_not_english
 from .message import Message
-from .label import Label
+from .label import Label, LabelShow, MessageShow
 from .scopes import ReadonlyGmailScope
 from .gmail_base import GmailBase
 import os
@@ -72,6 +72,7 @@ class Gmail(GmailBase):
         label_ids: list or str = None,
         seen: bool = None,
         from_: str = None,
+        subject: str = None,
         after: date = None,
         before: date = None,
         label_name: str = None
@@ -91,6 +92,9 @@ class Gmail(GmailBase):
 
         if from_:
             q += f"from:({from_})"
+
+        if subject:
+            q += f"subject:{subject}"
 
         if label_name:
             q += f"label:{get_label_id(label_name)}"
@@ -185,8 +189,8 @@ class Gmail(GmailBase):
     def create_label(
         self, 
         name: str,
-        message_list_visibility,
-        label_list_visibility,
+        message_list_visibility = MessageShow(),
+        label_list_visibility = LabelShow(),
         background_color: str = None,
         text_color: str = None
         ):
