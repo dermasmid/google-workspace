@@ -18,7 +18,7 @@ class Message:
             data = base64.urlsafe_b64decode(raw_message["raw"])
             encoding = chardet.detect(data)['encoding']
             self.mail_obj = email.message_from_string(data.decode(encoding))
-        self.is_seen = "UNREAD" in self.label_ids
+        self.is_seen = not "UNREAD" in self.label_ids
         self.is_chat_message = "CHAT" in self.label_ids
         self.in_reply_to = self.mail_obj['In-Reply-To']
         self.references = self.mail_obj['References']
