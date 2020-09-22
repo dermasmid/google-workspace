@@ -30,7 +30,8 @@ class Message:
         self.bcc = get_emails_address(self.mail_obj["Bcc"])
         self.raw_from = self.mail_obj["From"]
         self.from_ = get_emails_address(self.raw_from)[0]
-        self.from_name = get_full_address_data(self.raw_from)[0]["name"]
+        self.raw_from_name = get_full_address_data(self.raw_from)[0]["name"] or ''
+        self.from_name = decode(self.raw_from_name)
         self.raw_date = self.mail_obj["Date"]
         self.date = parse_date(self.raw_date)
         self.is_bulk = self.mail_obj['Precedence'] == 'bulk'
