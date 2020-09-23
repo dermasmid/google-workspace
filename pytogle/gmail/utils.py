@@ -144,7 +144,7 @@ def make_message(
             file_name = os.path.basename(attachment_path)
             content_type = guess_type(attachment_path)[0]
 
-            with open(file_name, 'rb') as f:
+            with open(attachment_path, 'rb') as f:
                 data = f.read()
         elif type(attachment_path) is tuple:
             data = attachment_path[0]
