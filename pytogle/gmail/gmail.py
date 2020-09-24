@@ -6,6 +6,7 @@ from .message import Message
 from .label import Label, LabelShow, MessageShow
 from .scopes import ReadonlyGmailScope
 from .gmail_base import GmailBase
+from .exceptions import DetctedFlood
 import os
 import time
 from datetime import datetime
@@ -166,8 +167,13 @@ class Gmail(GmailBase):
         bcc: list or str = None,
         references: str = None,
         in_reply_to: str = None,
-        thread_id: str = None
+        thread_id: str = None,
+        check_for_similarities: list = None
         ):
+        if check_for_similarities:
+            args = vars()
+            if self._check_if_sent_similar_message(args, check_for_similarities):
+                raise DetctedFlood
         message = make_message(self.email_address, self.sender_name, to, cc, bcc, subject, text, html, attachments, references, in_reply_to)
         b64 = base64.urlsafe_b64encode(message).decode()
         body = {'raw': b64}

@@ -1,7 +1,6 @@
 
 
 
-
 class GmailBase:
 
     def _get_messages(self, next_page_token, label_ids, q):
@@ -54,3 +53,15 @@ class GmailBase:
     def _get_label_raw_data(self, label_id: str):
         data = self.service.labels_service.get(userId= 'me', id= label_id).execute()
         return data
+
+
+    def _check_if_sent_similar_message(self, message, similarities: list):
+        kwargs = {}
+        from_date = similarities.pop(-1)
+        for similarity in similarities:
+            value = message[similarity]
+            kwargs[similarity] = value
+        if from_date:
+            kwargs['after'] = from_date
+        response = bool(list(self.get_messages('SENT', **kwargs)))
+        return response
