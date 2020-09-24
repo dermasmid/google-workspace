@@ -1,4 +1,4 @@
-
+from datetime import datetime, timedelta
 
 
 class GmailBase:
@@ -57,11 +57,12 @@ class GmailBase:
 
     def _check_if_sent_similar_message(self, message, similarities: list):
         kwargs = {}
-        from_date = similarities.pop(-1)
+        if isinstance(datetime, similarities[-1]):
+            kwargs['after'] = similarities.pop(-1)
+        else:
+            kwargs['after'] = datetime.today() - timedelta(days=1)
         for similarity in similarities:
             value = message[similarity]
             kwargs[similarity] = value
-        if from_date:
-            kwargs['after'] = from_date
-        response = bool(list(self.get_messages('SENT', **kwargs)))
+        response = bool(list(self.get_messages('SENT', to= message['to'], **kwargs)))
         return response

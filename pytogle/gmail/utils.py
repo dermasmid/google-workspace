@@ -93,7 +93,7 @@ def make_message(
     subject: str = "",
     text: str = None,
     html: str = None,
-    attachments: list = [], # list of file paths or list of tuples with (data, filename) format
+    attachments: list = [], # list of file paths or list of tuples with (data, filename) format or (filepath, filename to use)
     references: str = None, # For replying emails
     in_reply_to: str = None # Same
     ):
@@ -140,15 +140,18 @@ def make_message(
         'application': MIMEApplication
     }
     for attachment_path in attachments:
-        if type(attachment_path) is str:
+        if isinstance(attachment_path, str):
             file_name = os.path.basename(attachment_path)
             content_type = guess_type(attachment_path)[0]
 
             with open(attachment_path, 'rb') as f:
                 data = f.read()
-        elif type(attachment_path) is tuple:
+        elif isinstance(attachment_path, tuple):
             data = attachment_path[0]
             file_name = attachment_path[1]
+            if isinstance(data, str):
+                with open(data, 'rb') as f:
+                    data = f.read()
             content_type = magic.from_buffer(data, mime= True)
 
         if content_type is None:

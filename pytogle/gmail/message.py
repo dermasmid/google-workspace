@@ -25,9 +25,9 @@ class Message:
         self.is_reply = bool(self.in_reply_to)
         self.message_id = self.mail_obj["Message-Id"]
         self.subject = decode(self.mail_obj["Subject"]) or ''
-        self.to = get_emails_address(self.mail_obj["To"])
-        self.cc = get_emails_address(self.mail_obj["Cc"])
-        self.bcc = get_emails_address(self.mail_obj["Bcc"])
+        self.to = get_emails_address(self.mail_obj["To"]) or []
+        self.cc = get_emails_address(self.mail_obj["Cc"]) or []
+        self.bcc = get_emails_address(self.mail_obj["Bcc"]) or []
         self.raw_from = self.mail_obj["From"]
         self.from_ = get_emails_address(self.raw_from)[0]
         self.raw_from_name = get_full_address_data(self.raw_from)[0]["name"] or ''
@@ -131,6 +131,22 @@ class Message:
         return data
         
         
+
+    def forward(self, to: list or str):
+        attachments = []
+        if self.text:
+            self.text = f'Original message from: {self.from_}\r\n' + self.text
+        if self.html:
+            self.html = f'<h3>Original message from: {self.from_}</h3>' + self.html
+        for attachment in self.attachments:
+            attachments.append((attachment.payload, attachment.filename))
+        self.mailbox.send_message(
+            to= to,
+            subject= f'FWD: {self.subject}',
+            text= self.text,
+            html= self.html,
+            attachments= attachments     
+        )
 
     @property
     def labels(self):

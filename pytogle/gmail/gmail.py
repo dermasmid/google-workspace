@@ -160,19 +160,19 @@ class Gmail(GmailBase):
         self,
         to: list or str = None,
         subject: str = "", 
-        text: str = None, 
-        html: str = None, 
+        text: str = None,
+        html: str = None,
         attachments: list = [],
         cc: list or str = None,
         bcc: list or str = None,
         references: str = None,
         in_reply_to: str = None,
         thread_id: str = None,
-        check_for_similarities: list = None
+        check_for_floods: list = None
         ):
-        if check_for_similarities:
+        if check_for_floods:
             args = vars()
-            if self._check_if_sent_similar_message(args, check_for_similarities):
+            if self._check_if_sent_similar_message(args, check_for_floods):
                 raise DetctedFlood
         message = make_message(self.email_address, self.sender_name, to, cc, bcc, subject, text, html, attachments, references, in_reply_to)
         b64 = base64.urlsafe_b64encode(message).decode()
