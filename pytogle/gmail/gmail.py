@@ -72,6 +72,7 @@ class Gmail(GmailBase):
         label_ids: list or str = None,
         seen: bool = None,
         from_: str = None,
+        to: list = None,
         subject: str = None,
         after: date = None,
         before: date = None,
@@ -92,12 +93,16 @@ class Gmail(GmailBase):
 
         if from_:
             q += f"from:({from_})"
+        
+        if to:
+            q += f'to:({",".join(to)})'
 
         if subject:
-            q += f"subject:{subject}"
+            q += f"subject:({subject})"
 
         if label_name:
             q += f"label:{get_label_id(label_name)}"
+
         if label_ids:
             if isinstance(label_ids, str):
                 label_ids = [get_label_id(label_ids)]
