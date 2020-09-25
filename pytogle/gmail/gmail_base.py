@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta
+from .utils import gmail_query_maker
+
 
 
 class GmailBase:
 
-    def _get_messages(self, next_page_token, label_ids, q):
-        kwargs = {'userId': 'me', 'pageToken': next_page_token, 'q': q}
+    def _get_messages(self, next_page_token, label_ids, query):
+        kwargs = {'userId': 'me', 'pageToken': next_page_token, 'q': query}
         if label_ids:
             kwargs['labelIds'] = label_ids
         data = self.service.message_service.list(**kwargs).execute()
@@ -64,5 +66,7 @@ class GmailBase:
         for similarity in similarities:
             value = message[similarity]
             kwargs[similarity] = value
-        response = bool(list(self.get_messages('SENT', to= message['to'], **kwargs)))
+        query = gmail_query_maker(to= message['to'], **kwargs)
+        response = bool(self._get_messages(None, ['SENT'], query)[0])
+        
         return response

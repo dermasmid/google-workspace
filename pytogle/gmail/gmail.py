@@ -9,7 +9,7 @@ from .gmail_base import GmailBase
 from .exceptions import DetctedFlood
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import smtplib, ssl
 from email.utils import getaddresses
 
@@ -32,7 +32,7 @@ class Gmail(GmailBase):
             if not allow_modify:
                 kwargs['scopes'] = [ReadonlyGmailScope()]
             self.service = GoogleService(api= "gmail", **kwargs)
-
+        self.prevent_flood = False
         self.get_user()
 
 
@@ -148,11 +148,23 @@ class Gmail(GmailBase):
         thread_id: str = None,
         check_for_floods: list = None
         ):
-        if check_for_floods:
+        if check_for_floods or self.prevent_flood:
             args = vars()
-            if self._check_if_sent_similar_message(args, check_for_floods):
+            if self._check_if_sent_similar_message(args, check_for_floods or ['subject', datetime.now() - timedelta(days=1)]):
                 raise DetctedFlood
-        message = make_message(self.email_address, self.sender_name, to, cc, bcc, subject, text, html, attachments, references, in_reply_to)
+        message = make_message(
+            self.email_address, 
+            self.sender_name, 
+            to, 
+            cc, 
+            bcc, 
+            subject, 
+            text, 
+            html, 
+            attachments, 
+            references, 
+            in_reply_to
+            )
         b64 = base64.urlsafe_b64encode(message).decode()
         body = {'raw': b64}
         if thread_id:
