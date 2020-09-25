@@ -1,7 +1,7 @@
 import base64
 from datetime import date, datetime
 from ..service import GoogleService
-from .utils import make_message, make_label_dict, get_label_id, encode_if_not_english
+from .utils import make_message, make_label_dict, get_label_id, encode_if_not_english, gmail_query_maker
 from .message import Message
 from .label import Label, LabelShow, MessageShow
 from .scopes import ReadonlyGmailScope
@@ -79,30 +79,8 @@ class Gmail(GmailBase):
         before: date = None,
         label_name: str = None
         ):
-        q = ""
-        if not seen is None:
-            if seen:
-                q += "is:read"
-            else:
-                q += "is:unread"
-        
-        if after:
-            q += f'after:{after.strftime("%Y/%m/%d")}'
 
-        if before:
-            q += f'before:{before.strftime("%Y/%m/%d")}'
-
-        if from_:
-            q += f"from:({from_})"
-        
-        if to:
-            q += f'to:({",".join(to)})'
-
-        if subject:
-            q += f"subject:({subject})"
-
-        if label_name:
-            q += f"label:{get_label_id(label_name)}"
+        query = gmail_query_maker(seen, from_, to, subject, after, before, label_name)
 
         if label_ids:
             if isinstance(label_ids, str):
@@ -112,7 +90,7 @@ class Gmail(GmailBase):
 
 
         next_page_token = None
-        messages, next_page_token = self._get_messages(next_page_token, label_ids, q)
+        messages, next_page_token = self._get_messages(next_page_token, label_ids, query)
         
         while True:
             try:
@@ -121,7 +99,7 @@ class Gmail(GmailBase):
             except StopIteration:
                 if not next_page_token:
                     break
-                messages, next_page_token = self._get_messages(next_page_token, label_ids, q)
+                messages, next_page_token = self._get_messages(next_page_token, label_ids, query)
                 continue
 
             else:

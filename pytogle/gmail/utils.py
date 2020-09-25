@@ -9,7 +9,7 @@ from email.header import decode_header
 from mimetypes import guess_type
 import magic
 import os
-from datetime import datetime
+from datetime import datetime, date
 import base64
 from html.parser import HTMLParser
 
@@ -225,3 +225,43 @@ def get_html_text(html: str):
     parser.feed(html)
 
     return parser.text.strip()
+
+
+
+def gmail_query_maker(
+    seen: bool = None,
+    from_: str = None,
+    to: list = None,
+    subject: str = None,
+    after: date = None,
+    before: date = None,
+    label_name: str = None
+    ):
+    query = ""
+
+    if not seen is None:
+        if seen:
+            query += "is:read"
+        else:
+            query += "is:unread"
+    
+    if after:
+        query += f'after:{after.strftime("%Y/%m/%d")}'
+
+    if before:
+        query += f'before:{before.strftime("%Y/%m/%d")}'
+
+    if from_:
+        query += f"from:({from_})"
+    
+    if to:
+        query += f'to:({",".join(to)})'
+
+    if subject:
+        query += f"subject:({subject})"
+
+    if label_name:
+        query += f"label:{get_label_id(label_name)}"
+
+    return query
+
