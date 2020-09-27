@@ -1,6 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from .utils import gmail_query_maker
-
+from .message import Message
 
 
 class GmailBase:
@@ -19,6 +19,10 @@ class GmailBase:
         raw_message = self.service.message_service.get(userId = "me", id= message_id, format= "raw").execute()
         return raw_message
 
+
+    def _get_message_full_data(self, message_id):
+        full_data = self.service.message_service.get(userId = "me", id= message_id).execute()
+        return full_data
 
     def _get_history_data(self, start_history_id: int, history_types: list, label_id: str = None):
         perams = {
@@ -57,16 +61,20 @@ class GmailBase:
         return data
 
 
-    def _check_if_sent_similar_message(self, message, similarities: list):
+    def _check_if_sent_similar_message(self, message, flood_prevention):
         kwargs = {}
-        if isinstance(datetime, similarities[-1]):
-            kwargs['after'] = similarities.pop(-1)
-        else:
-            kwargs['after'] = datetime.today() - timedelta(days=1)
-        for similarity in similarities:
+        kwargs['after'] = flood_prevention.after_date
+        for similarity in flood_prevention.similarities:
             value = message[similarity]
             kwargs[similarity] = value
-        query = gmail_query_maker(to= message['to'], **kwargs)
-        response = bool(self._get_messages(None, ['SENT'], query)[0])
-        
+        query = gmail_query_maker(**kwargs)
+        messages = self._get_messages(None, ['SENT'], query)[0]
+        if type(flood_prevention.after_date) is datetime:
+            final_messages = []
+            for message in messages:
+                message_date = Message(self._get_message_raw_data(message['id']), self).date
+                if flood_prevention.after_date < message_date:
+                    final_messages.append(message)
+            messages = final_messages
+        response = len(list(messages)) >= flood_prevention.number_of_messages
         return response

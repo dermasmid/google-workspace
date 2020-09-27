@@ -142,7 +142,7 @@ class Message:
             attachments.append((attachment.payload, attachment.filename))
         self.mailbox.send_message(
             to= to,
-            subject= f'FWD: {self.subject}',
+            subject= f'Fwd: {self.subject}',
             text= self.text,
             html= self.html,
             attachments= attachments     

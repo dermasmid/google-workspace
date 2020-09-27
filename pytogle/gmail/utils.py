@@ -255,7 +255,7 @@ def gmail_query_maker(
         query += f"from:({from_})"
     
     if to:
-        query += f'to:({",".join(to)})'
+        query += f'to:({",".join(to) if isinstance(to, list) else to})'
 
     if subject:
         query += f"subject:({subject})"

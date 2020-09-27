@@ -7,9 +7,10 @@ from .label import Label, LabelShow, MessageShow
 from .scopes import ReadonlyGmailScope
 from .gmail_base import GmailBase
 from .exceptions import DetctedFlood
+from .flood_prevention import FloodPrevention
 import os
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import smtplib, ssl
 from email.utils import getaddresses
 
@@ -33,6 +34,7 @@ class Gmail(GmailBase):
                 kwargs['scopes'] = [ReadonlyGmailScope()]
             self.service = GoogleService(api= "gmail", **kwargs)
         self.prevent_flood = False
+        self.flood_prevention = FloodPrevention
         self.get_user()
 
 
@@ -146,11 +148,11 @@ class Gmail(GmailBase):
         references: str = None,
         in_reply_to: str = None,
         thread_id: str = None,
-        check_for_floods: list = None
+        check_for_floods: FloodPrevention = None
         ):
         if check_for_floods or self.prevent_flood:
             args = vars()
-            if self._check_if_sent_similar_message(args, check_for_floods or ['subject', datetime.now() - timedelta(days=1)]):
+            if self._check_if_sent_similar_message(args, check_for_floods or self.flood_prevention):
                 raise DetctedFlood
         message = make_message(
             self.email_address, 
