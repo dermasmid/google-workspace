@@ -102,20 +102,15 @@ def make_message(
     message["Subject"] = subject
     message["From"] = from_ if not sender_name else f'{sender_name} <{from_}>'
 
-    if isinstance(to, list):
-        message["To"] = ", ".join(to)
-    else:
-        message["To"] = to
+    if to:
+        message["To"] = ", ".join(to) if isinstance(to, list) else to
+    
+    if cc:
+        message["Cc"] = ", ".join(cc) if isinstance(cc, list) else cc
 
-    if isinstance(cc, list):
-        message["Cc"] = ", ".join(cc)
-    else:
-        message["Cc"] = cc
+    if bcc:
+        message["Bcc"] = ", ".join(bcc) if isinstance(bcc, list) else bcc
 
-    if isinstance(bcc, list):
-        message["Bcc"] = ", ".join(bcc)
-    else:
-        message["Bcc"] = bcc
 
     if references:
         message["References"] = references

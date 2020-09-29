@@ -2,7 +2,7 @@ import email
 import base64
 from .utils import get_emails_address, get_full_address_data, parse_date, decode, get_label_id, get_html_text
 import chardet
-
+from copy import copy
 
 class Message:
 
@@ -133,20 +133,13 @@ class Message:
         
 
     def forward(self, to: list or str):
-        attachments = []
-        if self.text:
-            self.text = f'Original message from: {self.from_}\r\n' + self.text
-        if self.html:
-            self.html = f'<h3>Original message from: {self.from_}</h3>' + self.html
-        for attachment in self.attachments:
-            attachments.append((attachment.payload, attachment.filename))
-        self.mailbox.send_message(
-            to= to,
-            subject= f'Fwd: {self.subject}',
-            text= self.text,
-            html= self.html,
-            attachments= attachments     
-        )
+        new_message = copy(self)
+        if new_message.text:
+            new_message.text = f'Original message from: {new_message.from_}\r\n' + new_message.text
+        if new_message.html_text:
+            new_message.html = f'<h3>Original message from: {new_message.from_}</h3>' + new_message.html
+        new_message.subject = f'Fwd: {new_message.subject}'
+        self.mailbox.send_message_from_message_obj(new_message, to)
 
     @property
     def labels(self):

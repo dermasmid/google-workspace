@@ -175,6 +175,20 @@ class Gmail(GmailBase):
         return data
 
 
+    def send_message_from_message_obj(self, message_obj, to: list or str = None, cc: list or str = None, bcc: list or str = None):
+        attachments = []
+        for attachment in message_obj.attachments:
+            attachments.append((attachment.payload, attachment.filename))
+        self.send_message(
+            to= to,
+            subject= message_obj.subject,
+            text= message_obj.text,
+            html= message_obj.html,
+            attachments= attachments,
+            cc= cc,
+            bcc= bcc
+        )
+
 
     def get_label_by_id(self, label_id):
             label_data = self._get_label_raw_data(label_id)
