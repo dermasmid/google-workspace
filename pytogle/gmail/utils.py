@@ -13,10 +13,25 @@ from datetime import datetime, date
 import base64
 from html.parser import HTMLParser
 
-
+_not_important_tags = ('title', 'style')
 def _handle_data(self, data):
-    self.text += data + '\n'
+    data = data.strip()
+    if data and self.important_tag:
+        self.text += data + '\n'
+
+def _handle_starttag(self, tag, attrs):
+    if tag in _not_important_tags:
+        self.important_tag = False
+
+def _handle_endtag(self, tag):
+    if tag in _not_important_tags:
+        self.important_tag = True
+
+
+
 HTMLParser.handle_data = _handle_data
+HTMLParser.handle_starttag = _handle_starttag
+HTMLParser.handle_endtag = _handle_endtag
 
 
 def is_english_chars(string: str):
@@ -217,6 +232,7 @@ def get_label_id(label_id: str):
 def get_html_text(html: str):
     parser = HTMLParser()
     parser.text = ''
+    parser.important_tag = True
     parser.feed(html)
 
     return parser.text.strip()
