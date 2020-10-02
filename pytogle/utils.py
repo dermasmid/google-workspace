@@ -3,20 +3,23 @@ import json
 import requests_oauthlib
 from googleapiclient._helpers import positional
 from googleapiclient import discovery
-from googleapiclient.http import HttpRequest
 import six
 from six.moves.urllib.parse import urljoin
 from googleapiclient.schema import Schemas
 from googleapiclient import _auth
 from googleapiclient.model import JsonModel
 from google.auth.exceptions import MutualTLSChannelError
-from googleapiclient.errors import InvalidJsonError
+from googleapiclient.errors import InvalidJsonError, HttpError
 from google.auth.transport import mtls
-from googleapiclient.http import HttpMock
-from googleapiclient.http import HttpMockSequence
-from googleapiclient.http import build_http
+from googleapiclient.http import HttpMock, HttpMockSequence, build_http, HttpRequest
 import google
+from time import sleep
+import traceback
 import logging
+from socket import timeout
+
+
+errors = (BrokenPipeError, timeout, HttpError)
 logger = logging.getLogger(__name__)
 
 try:
@@ -219,3 +222,25 @@ def alt_build(func):
         discovery.build_from_document = original
         return kwargs
     return inner
+
+def _error_handling_decorator(execute_fn):
+    def handle_errors(*args, **kwargs):
+        for x in range(1, 6):
+            try:
+                data = execute_fn(*args, **kwargs)
+                return data
+            except errors as e:
+                error = str(e)
+                if 'Bad Gateway' in error:
+                    pass
+                else:
+                    raise e
+                print(f'Sleeping for 15 secs, time: {x}')
+                sleep(1)
+            if x == 5:
+                raise e
+    return handle_errors
+
+
+def _add_error_handler_for_api_client():
+    HttpRequest.execute = _error_handling_decorator(HttpRequest.execute)

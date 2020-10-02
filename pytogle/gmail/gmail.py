@@ -153,7 +153,7 @@ class Gmail(GmailBase):
         if check_for_floods or self.prevent_flood:
             args = vars()
             if self._check_if_sent_similar_message(args, check_for_floods or self.flood_prevention):
-                raise DetctedFlood
+                return False
         message = make_message(
             self.email_address, 
             self.sender_name, 

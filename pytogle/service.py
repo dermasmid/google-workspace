@@ -5,7 +5,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow, Flow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 import dill
-from .utils import _fix_google_ster_issues, alt_build, default_versions, get_default_scopes, get_creds_file
+from .utils import _fix_google_ster_issues, alt_build, default_versions, get_default_scopes, get_creds_file, _add_error_handler_for_api_client
 from .types import LocalAuth, UrlAuth
 from httplib2 import Http
 
@@ -32,7 +32,7 @@ class GoogleService(Resource):
         self.api = api
         self.pickle_file = f"{self.session}.pickle"
         self.is_authenticated = os.path.exists(self.pickle_file)
-
+        _add_error_handler_for_api_client()
         if service:
             if isinstance(service, Resource):
                 self._add_service_methods(service)
