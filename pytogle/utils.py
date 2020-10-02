@@ -230,11 +230,12 @@ def _error_handling_decorator(execute_fn):
                 data = execute_fn(*args, **kwargs)
                 return data
             except errors as e:
-                error = str(e)
-                if 'Bad Gateway' in error:
-                    pass
-                else:
-                    raise e
+                if isinstance(e, HttpError):
+                    error = str(e)
+                    if 'Bad Gateway' in error:
+                        pass
+                    else:
+                        raise e
                 print(f'Sleeping for 15 secs, time: {x}')
                 sleep(1)
             if x == 5:
