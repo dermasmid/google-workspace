@@ -17,6 +17,8 @@ from time import sleep
 import traceback
 import logging
 from socket import timeout
+from datetime import datetime
+import __main__
 
 
 errors = (BrokenPipeError, timeout, HttpError)
@@ -230,14 +232,17 @@ def _error_handling_decorator(execute_fn):
                 data = execute_fn(*args, **kwargs)
                 return data
             except errors as e:
+                error = str(e)
+                trace = traceback.format_exc()
+                with open('errors.txt', 'a') as f:
+                    f.write(f'\n{datetime.now()}:\n{trace}file: {__main__.__file__}\n')
                 if isinstance(e, HttpError):
-                    error = str(e)
                     if 'Bad Gateway' in error:
                         pass
                     else:
                         raise e
                 print(f'Sleeping for 15 secs, time: {x}')
-                sleep(1)
+                sleep(15)
             if x == 5:
                 raise e
     return handle_errors
