@@ -21,7 +21,7 @@ from datetime import datetime
 import __main__
 
 
-errors = (BrokenPipeError, timeout, HttpError)
+errors = (BrokenPipeError, timeout, HttpError, ConnectionResetError)
 logger = logging.getLogger(__name__)
 
 try:
@@ -237,7 +237,7 @@ def _error_handling_decorator(execute_fn):
                 with open('errors.txt', 'a') as f:
                     f.write(f'\n{datetime.now()}:\n{trace}file: {__main__.__file__}\n')
                 if isinstance(e, HttpError):
-                    if 'Bad Gateway' in error:
+                    if any(error_type in error for error_type in ('The service is currently unavailable', 'Bad Gateway')):
                         pass
                     else:
                         raise e
