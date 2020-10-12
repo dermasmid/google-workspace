@@ -235,15 +235,18 @@ def _error_handling_decorator(execute_fn):
                 error = str(e)
                 trace = traceback.format_exc()
                 with open('errors.txt', 'a') as f:
-                    f.write(f'\n{datetime.now()}:\n{trace}file: {__main__.__file__}\n')
-                if isinstance(e, HttpError):
-                    if any(error_type in error for error_type in ('The service is currently unavailable', 'Bad Gateway')):
-                        pass
-                    else:
-                        raise e
-                print(f'Sleeping for 15 secs, time: {x}')
-                sleep(15)
+                    f.write(f'{datetime.now()}:\n{trace}file: {__main__.__file__}\n')
+                    if isinstance(e, HttpError):
+                        if any(error_type in error for error_type in ('The service is currently unavailable', 'Bad Gateway', 'Internal error encountered')):
+                            f.write('handled: True')
+                            pass
+                        else:
+                            f.write('handled: False')
+                            raise e
+                    print(f'Sleeping for 15 secs, time: {x}')
+                    sleep(15)
             if x == 5:
+                f.write('handled: False')
                 raise e
     return handle_errors
 
