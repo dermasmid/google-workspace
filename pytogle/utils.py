@@ -21,7 +21,6 @@ from datetime import datetime
 import __main__
 
 
-errors = (BrokenPipeError, timeout, HttpError, ConnectionResetError)
 logger = logging.getLogger(__name__)
 
 try:
@@ -225,30 +224,46 @@ def alt_build(func):
         return kwargs
     return inner
 
+
+errors = (BrokenPipeError, timeout, HttpError, ConnectionResetError)
+
+
 def _error_handling_decorator(execute_fn):
-    def handle_errors(*args, **kwargs):
-        for x in range(1, 6):
+    def execute(*args, **kwargs):
+        x = 0
+        while True:
             try:
                 data = execute_fn(*args, **kwargs)
                 return data
-            except errors as e:
-                error = str(e)
+            except Exception as e:
+                x += 1
+                error_str = str(e)
                 trace = traceback.format_exc()
-                with open('errors.txt', 'a') as f:
+                with open('api_errors.txt', 'a') as f:
                     f.write(f'{datetime.now()}:\n{trace}file: {__main__.__file__}\n')
-                    if isinstance(e, HttpError):
-                        if any(error_type in error for error_type in ('The service is currently unavailable', 'Bad Gateway', 'Internal error encountered')):
+                    if any(isinstance(e, error) for error in errors):
+                        if not isinstance(e, HttpError):
                             f.write('handled: True')
                             pass
                         else:
-                            f.write('handled: False')
-                            raise e
-                    print(f'Sleeping for 15 secs, time: {x}')
-                    sleep(15)
+                            if any(error_type in error_str for error_type in (
+                                'The service is currently unavailable', 
+                                'Bad Gateway', 
+                                'Internal error encountered'
+                                )):
+                                f.write('handled: True')
+                                pass
+                            else:
+                                f.write('handled: False')
+                                raise e
+                    else:
+                        f.write('handled: False')
+                        raise e
+                    print(f'Sleeping for 30 secs, time: {x}')
+                    sleep(30)
             if x == 5:
-                f.write('handled: False')
                 raise e
-    return handle_errors
+    return execute
 
 
 def _add_error_handler_for_api_client():
