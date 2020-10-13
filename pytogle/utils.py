@@ -243,7 +243,7 @@ def _error_handling_decorator(execute_fn):
                     f.write(f'{datetime.now()}:\n{trace}file: {__main__.__file__}\n')
                     if any(isinstance(e, error) for error in errors):
                         if not isinstance(e, HttpError):
-                            f.write('handled: True')
+                            f.write('handled: True\n\n')
                             pass
                         else:
                             if any(error_type in error_str for error_type in (
@@ -251,13 +251,13 @@ def _error_handling_decorator(execute_fn):
                                 'Bad Gateway', 
                                 'Internal error encountered'
                                 )):
-                                f.write('handled: True')
+                                f.write('handled: True\n\n')
                                 pass
                             else:
-                                f.write('handled: False')
+                                f.write('handled: False\n\n')
                                 raise e
                     else:
-                        f.write('handled: False')
+                        f.write('handled: False\n\n')
                         raise e
                     print(f'Sleeping for 30 secs, time: {x}')
                     sleep(30)
