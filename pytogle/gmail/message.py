@@ -1,6 +1,6 @@
 import email
 import base64
-from .utils import get_emails_address, get_full_address_data, parse_date, decode, get_label_id, get_html_text
+from .utils import get_emails_address, get_full_address_data, parse_date, decode, get_label_id, get_html_text, is_english_chars, encode_if_not_english
 import chardet
 from copy import copy
 
@@ -31,6 +31,9 @@ class Message:
         self.raw_from = self.mail_obj["From"]
         self.from_ = get_emails_address(self.raw_from)[0]
         self.raw_from_name = get_full_address_data(self.raw_from)[0]["name"] or ''
+        if not is_english_chars(self.raw_from_name):
+            self.raw_from_name = encode_if_not_english(self.raw_from_name)
+            self.raw_from = f'{self.raw_from_name} <{self.from_}>'
         self.from_name = decode(self.raw_from_name)
         self.raw_date = self.mail_obj["Date"]
         self.date = parse_date(self.raw_date)
