@@ -63,6 +63,13 @@ class GmailBase:
 
     def _check_if_sent_similar_message(self, message, flood_prevention):
         kwargs = {}
+        # if raw_from is passed we have to remove the name first becuz the api wont return anything
+        if 'to' in flood_prevention.similarities:
+            to = message['to']
+            if '<' in to:
+                start = to.find('<') + 1
+                end = to.find('>')
+                message['to'] = to[start:end]
         kwargs['after'] = flood_prevention.after_date
         for similarity in flood_prevention.similarities:
             value = message[similarity]
