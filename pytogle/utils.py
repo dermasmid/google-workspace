@@ -249,7 +249,8 @@ def _error_handling_decorator(execute_fn):
                             if any(error_type in error_str for error_type in (
                                 'The service is currently unavailable', 
                                 'Bad Gateway', 
-                                'Internal error encountered'
+                                'Internal error encountered',
+                                'Unknown Error'
                                 )):
                                 f.write('handled: True\n\n')
                                 pass
