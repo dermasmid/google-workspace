@@ -16,7 +16,7 @@ class Drive:
             self.connect()
 
     def connect(self):
-        self.service = GoogleService(service_name= "drive")
+        self.service = GoogleService(api= "drive")
 
 
 

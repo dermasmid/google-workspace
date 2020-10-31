@@ -166,7 +166,7 @@ class GoogleService(Resource):
             self.labels_service = self.users_service.labels()
             self.attachment_service = self.message_service.attachments()
         elif self.api == "drive":
-            self.files_service = self.service.files()
+            self.files_service = self.files()
 
 
 

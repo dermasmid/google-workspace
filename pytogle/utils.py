@@ -85,8 +85,9 @@ def _fix_google_ster_issues():
 
 def get_default_scopes(api):
     from .gmail.scopes import FullAccessGmailScope
+    from .drive.scopes import FullAccessDriveScope
     default_scopes = {
-        "drive": ['https://www.googleapis.com/auth/drive'],
+        "drive": [FullAccessDriveScope],
         "gmail": [FullAccessGmailScope()],
         "photoslibrary": ['https://www.googleapis.com/auth/photoslibrary']
         }
