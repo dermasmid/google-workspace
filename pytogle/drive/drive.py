@@ -48,4 +48,4 @@ class Drive:
 
     def make_public(self, file_id):
         permission_role = {'type': 'anyone', 'role': 'reader'}
-        self.service.service.permissions().create(fileId=file_id, body = permission_role).execute()
+        self.service.permissions().create(fileId=file_id, body = permission_role).execute()
