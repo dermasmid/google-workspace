@@ -31,9 +31,10 @@ class Message:
         self.raw_from = self.mail_obj["From"]
         try:
             self.from_ = get_emails_address(self.raw_from)[0]
+            self.raw_from_name = get_full_address_data(self.raw_from)[0]["name"] or ''
         except IndexError: # edge case where raw_from is None
             self.from_ = ''
-        self.raw_from_name = get_full_address_data(self.raw_from)[0]["name"] or ''
+            self.raw_from_name = ''
         if not is_english_chars(self.raw_from_name):
             self.raw_from_name = encode_if_not_english(self.raw_from_name)
             self.raw_from = f'{self.raw_from_name} <{self.from_}>'
