@@ -17,7 +17,7 @@ class Message:
         except UnicodeDecodeError: # i can do this every time but the detection takes 0.1 secs - which i think is long
             data = base64.urlsafe_b64decode(raw_message["raw"])
             encoding = chardet.detect(data)['encoding']
-            self.mail_obj = email.message_from_string(data.decode(encoding))
+            self.mail_obj = email.message_from_string(data.decode(encoding)) if encoding else email.message_from_string('')
         self.is_seen = not "UNREAD" in self.label_ids
         self.is_chat_message = "CHAT" in self.label_ids
         self.in_reply_to = self.mail_obj['In-Reply-To']
