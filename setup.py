@@ -29,7 +29,7 @@ setup(
     keywords = 'gmail gmail-api drive google-drive google-drive-api api-wrapper python3 python',
     classifiers = [
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT",
+        "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
     install_requires = requirements,
