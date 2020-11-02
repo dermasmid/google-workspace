@@ -5,7 +5,7 @@ pytogle is in it's very early stages and for now only has implemented a wrapper 
 ## Getting Started
 
 ``` bash
-pip3 install pytogle
+pip3 install -U pytogle
 ```
 
 Then you need to get a client secret file from [the google console](https://console.developers.google.com/) and you need to enable the api you want to use, just google it.
