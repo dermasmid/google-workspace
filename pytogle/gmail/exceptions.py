@@ -1,2 +1,0 @@
-class DetctedFlood(Exception):
-    pass

@@ -1,6 +1,19 @@
 from ..types import Scope
 
 
+__all__ = [
+    'FullAccessGmailScope',
+    'LabelsGmailScope',
+    'SendGmailScope',
+    'ReadonlyGmailScope',
+    'ComposeGmailScope',
+    'InsertGmailScope',
+    'ModifyGmailScope',
+    'MetadataGmailScope',
+    'SettingsBasicGmailScope',
+    'SettingsSharingGmailScope'
+]
+
 class FullAccessGmailScope(Scope):
 
     def __init__(self):

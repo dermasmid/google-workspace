@@ -6,7 +6,6 @@ from .message import Message
 from .label import Label, LabelShow, MessageShow
 from .scopes import ReadonlyGmailScope
 from .gmail_base import GmailBase
-from .exceptions import DetctedFlood
 from .flood_prevention import FloodPrevention
 import os
 import time
