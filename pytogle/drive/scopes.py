@@ -139,3 +139,6 @@ class ScriptsDriveScope(Scope):
             Allows access to Apps Script files.
             '''
         )
+
+def get_drive_default_scope():
+    return FullAccessDriveScope

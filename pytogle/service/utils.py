@@ -55,7 +55,10 @@ def get_creds_file(creds):
                 valid_creds.append(json_file)
         if len(valid_creds) > 1:
             raise Exception("I found more then one valid client secrets file, please remove one or explictly pass the path to the one you want to use")
-        return valid_creds[0]
+        try:
+            return valid_creds[0]
+        except IndexError:
+            raise Exception('I found no creds json file!!!! please go to the google console and download the creds file.')
             
 
 
@@ -84,14 +87,14 @@ def _fix_google_ster_issues():
 
 
 def get_default_scopes(api):
-    from .gmail.scopes import FullAccessGmailScope
-    from .drive.scopes import FullAccessDriveScope
+    from ..gmail.scopes import get_gmail_default_scope
+    from ..drive.scopes import get_drive_default_scope
     default_scopes = {
-        "drive": [FullAccessDriveScope()],
-        "gmail": [FullAccessGmailScope()],
+        "drive": get_drive_default_scope,
+        "gmail": get_gmail_default_scope,
         "photoslibrary": ['https://www.googleapis.com/auth/photoslibrary']
         }
-    return default_scopes[api]
+    return [default_scopes[api]()]
 
 
 

@@ -141,3 +141,7 @@ class SettingsSharingGmailScope(Scope):
             They are only available to G Suite customers using a service account with domain-wide delegation
             '''
         )
+
+
+def get_gmail_default_scope():
+    return FullAccessGmailScope()

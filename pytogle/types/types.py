@@ -1,7 +1,6 @@
-
-
 class LocalAuth:
     pass
+
 
 class UrlAuth:
     pass
