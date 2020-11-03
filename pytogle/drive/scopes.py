@@ -141,4 +141,4 @@ class ScriptsDriveScope(Scope):
         )
 
 def get_drive_default_scope():
-    return FullAccessDriveScope
+    return FullAccessDriveScope()
