@@ -280,6 +280,7 @@ def _add_error_handler_for_api_client():
 
 class _WsgiApp:
 
+
     def __init__(self, success_message):
 
         self.last_request_uri = None

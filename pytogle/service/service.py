@@ -28,7 +28,7 @@ class GoogleService(Resource):
         service: Resource = None,
         creds: Credentials = None,
         open_server_host: str = None,
-        open_server_port: str = None
+        open_server_port: int = 8080
         ):
         self.session = session or api
         self.version = version or utils.default_versions[api]
@@ -223,7 +223,35 @@ def url_auth(
     version: str = None,
     ):
     service = GoogleService(api= api, session= session, client_secrets= client_secrets, scopes= scopes, version= version, auth_type = 'url')
-    url = service.get_auth_url()
-    code = input(f'{url}\nenter code: ')
-    service.finnish_process(code)
+    if not service.is_authenticated:
+        url = service.get_auth_url()
+        code = input(f'{url}\nenter code: ')
+        service.finnish_process(code)
+    return service
+
+
+def open_server_auth(
+    api: str,
+    open_server_host: str,
+    open_server_port: int = 8080,
+    success_message: str = 'The Authentication was a success.',
+    session: str = None,
+    client_secrets: str = "creds.json",
+    scopes: list = [],
+    version: str = None,
+    ):
+    service = GoogleService(
+        api= api, 
+        open_server_host= open_server_host, 
+        open_server_port= open_server_port, 
+        session= session,
+        client_secrets= client_secrets,
+        scopes= scopes,
+        version= version,
+        auth_type= 'redirect'
+        )
+    if not service.is_authenticated:
+        url = service.get_auth_url()
+        print(url)
+        service.run_open_server(success_message= success_message)
     return service
