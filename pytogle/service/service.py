@@ -5,9 +5,10 @@ from google_auth_oauthlib.flow import InstalledAppFlow, Flow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 import dill
-from ..service.utils import _fix_google_ster_issues, alt_build, default_versions, get_default_scopes, get_creds_file, _add_error_handler_for_api_client, _WsgiApp
+from ..service import utils
 from httplib2 import Http
 from wsgiref import simple_server
+import urllib
 
 
 
@@ -26,14 +27,15 @@ class GoogleService(Resource):
         http: Http = None,
         service: Resource = None,
         creds: Credentials = None,
-        redirect_uri: str = None
+        open_server_host: str = None,
+        open_server_port: str = None
         ):
         self.session = session or api
-        self.version = version or default_versions[api]
+        self.version = version or utils.default_versions[api]
         self.api = api
         self.pickle_file = f"{self.session}.pickle"
         self.is_authenticated = os.path.exists(self.pickle_file)
-        _add_error_handler_for_api_client()
+        utils._add_error_handler_for_api_client()
         if service:
             if isinstance(service, Resource):
                 self._add_service_methods(service)
@@ -62,8 +64,8 @@ class GoogleService(Resource):
             if self.is_authenticated:
                 self._get_service()
             else:
-                self.client_secrets = get_creds_file(client_secrets)
-                self.scopes = list(scope.scope_code for scope in scopes or get_default_scopes(self.api))
+                self.client_secrets = utils.get_creds_file(client_secrets)
+                self.scopes = list(scope.scope_code for scope in scopes or utils.get_default_scopes(self.api))
                 self.auth_type = auth_type
 
 
@@ -71,15 +73,14 @@ class GoogleService(Resource):
                     self.authenticate_local()
 
                 elif self.auth_type == 'code':
-                    _fix_google_ster_issues()
-                    self.flow_args = {
-                        'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob'
-                    }
+                    utils._fix_google_ster_issues()
+                    self.redirect_uri = 'urn:ietf:wg:oauth:2.0:oob'
+
 
                 elif self.auth_type == 'redirect':
-                    self.flow_args = {
-                        'redirect_uri': redirect_uri
-                    }
+                    self.redirect_uri = f'http://{open_server_host}:{open_server_port}/'
+                    self.open_server_host = open_server_host
+                    self.open_server_port = open_server_port
 
     
 
@@ -96,10 +97,8 @@ class GoogleService(Resource):
 
 
     def get_auth_url(self):
-        self.flow = Flow.from_client_secrets_file(self.client_secrets, scopes= self.scopes, **self.flow_args)
+        self.flow = Flow.from_client_secrets_file(self.client_secrets, scopes= self.scopes, redirect_uri= self.redirect_uri)
         auth_url, _ = self.flow.authorization_url(prompt='consent')
-
-
 
         if self.auth_type == 'url':
             def save():
@@ -109,12 +108,18 @@ class GoogleService(Resource):
                 return dill_file
             
             self.finnish_process.save = save
+
         return auth_url
 
 
-    def run_open_server(self, host: str, port: int, success_message: str):
-        web_app = _WsgiApp(success_message)
-        web_server = simple_server.make_server(host= host, port= port, app= web_app)
+    def run_open_server(self, success_message: str):
+        web_app = utils._WsgiApp(success_message)
+        web_server = simple_server.make_server(
+            host= self.open_server_host, 
+            port= self.open_server_port, 
+            app= web_app, 
+            handler_class= utils._AltWsgiHandler,
+            )
         web_server.handle_request()
         authorization_response = web_app.last_request_uri.replace(
             'http', 'https')
@@ -128,7 +133,7 @@ class GoogleService(Resource):
             kwargs['code'] = code
         elif authorization_response:
             kwargs['authorization_response'] = authorization_response
-        _fix_google_ster_issues()
+        utils._fix_google_ster_issues()
         self.flow.fetch_token(**kwargs)
         creds = self.flow.credentials
         self._save_creds(creds)
@@ -147,7 +152,12 @@ class GoogleService(Resource):
     
     def delete(self):
         if self.is_authenticated:
+            with open(self.pickle_file, 'rb') as f:
+                creds = pickle.load(f)
+            data = urllib.parse.urlencode({'token': creds.token}).encode('ascii')
+            urllib.request.urlopen('https://oauth2.googleapis.com/revoke', data)
             os.remove(self.pickle_file)
+
 
 
     def __bool__(self):
@@ -166,7 +176,7 @@ class GoogleService(Resource):
         self.authenticated_scopes = creds.scopes
 
 
-    @alt_build
+    @utils.alt_build
     def _get_service_args(self, creds = None, http = None, developer_key= None):
         kwargs = build(self.api, self.version, credentials=creds, http= http, developerKey= developer_key)
         return dict(kwargs)
@@ -201,6 +211,7 @@ class GoogleService(Resource):
     def _save_creds(self, creds):
         with open(self.pickle_file, 'wb') as token:
             pickle.dump(creds, token)
+        self.is_authenticated = True
 
 
 

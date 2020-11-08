@@ -18,7 +18,7 @@ import traceback
 import logging
 from socket import timeout
 from datetime import datetime
-from wsgiref import util
+import wsgiref
 
 import __main__
 
@@ -288,5 +288,13 @@ class _WsgiApp:
     def __call__(self, environ, start_response):
 
         start_response('200 OK', [('Content-type', 'text/plain')])
-        self.last_request_uri = util.request_uri(environ)
+        self.last_request_uri = wsgiref.util.request_uri(environ)
         return [self._success_message.encode('utf-8')]
+
+
+
+class _AltWsgiHandler(wsgiref.simple_server.WSGIRequestHandler):
+
+
+    def log_message(self, format, *args):
+        pass
