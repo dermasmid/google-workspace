@@ -222,7 +222,14 @@ def url_auth(
     scopes: list = [],
     version: str = None,
     ):
-    service = GoogleService(api= api, session= session, client_secrets= client_secrets, scopes= scopes, version= version, auth_type = 'url')
+    service = GoogleService(
+        api= api, 
+        session= session, 
+        client_secrets= client_secrets, 
+        scopes= scopes, 
+        version= version, 
+        auth_type = 'url'
+        )
     if not service.is_authenticated:
         url = service.get_auth_url()
         code = input(f'{url}\nenter code: ')
