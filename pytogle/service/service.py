@@ -5,8 +5,9 @@ from google_auth_oauthlib.flow import InstalledAppFlow, Flow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 import dill
-from ..service.utils import _fix_google_ster_issues, alt_build, default_versions, get_default_scopes, get_creds_file, _add_error_handler_for_api_client
+from ..service.utils import _fix_google_ster_issues, alt_build, default_versions, get_default_scopes, get_creds_file, _add_error_handler_for_api_client, _WsgiApp
 from httplib2 import Http
+from wsgiref import simple_server
 
 
 
@@ -24,7 +25,8 @@ class GoogleService(Resource):
         api_key: str = None,
         http: Http = None,
         service: Resource = None,
-        creds: Credentials = None
+        creds: Credentials = None,
+        redirect_uri: str = None
         ):
         self.session = session or api
         self.version = version or default_versions[api]
@@ -68,16 +70,24 @@ class GoogleService(Resource):
                 if self.auth_type == 'local':
                     self.authenticate_local()
 
-                elif self.auth_type == 'url':
+                elif self.auth_type == 'code':
                     _fix_google_ster_issues()
+                    self.flow_args = {
+                        'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob'
+                    }
+
+                elif self.auth_type == 'redirect':
+                    self.flow_args = {
+                        'redirect_uri': redirect_uri
+                    }
 
     
 
 
 
     def authenticate_local(self):
-        flow = InstalledAppFlow.from_client_secrets_file(self.client_secrets, self.scopes)
-        creds = flow.run_local_server(port=2626)
+        self.flow = InstalledAppFlow.from_client_secrets_file(self.client_secrets, self.scopes)
+        creds = self.flow.run_local_server(port=2626)
         self._save_creds(creds)
         self._get_service()
         return self
@@ -86,25 +96,44 @@ class GoogleService(Resource):
 
 
     def get_auth_url(self):
-        flow = Flow.from_client_secrets_file(self.client_secrets, scopes= self.scopes, redirect_uri='urn:ietf:wg:oauth:2.0:oob')
-        auth_url, _ = flow.authorization_url(prompt='consent')
-        def finnish_process(code):
-            _fix_google_ster_issues()
-            flow.fetch_token(code= code)
-            creds = flow.credentials
-            self._save_creds(creds)
-            self._get_service()
-            return self
+        self.flow = Flow.from_client_secrets_file(self.client_secrets, scopes= self.scopes, **self.flow_args)
+        auth_url, _ = self.flow.authorization_url(prompt='consent')
 
 
-        def save():
-            dill_file = f"{self.session}.dill"
-            with open(dill_file, "wb") as f:
-                dill.dump(finnish_process, f)
-            return dill_file
-        
-        finnish_process.save = save
-        return auth_url, finnish_process
+
+        if self.auth_type == 'url':
+            def save():
+                dill_file = f"{self.session}.dill"
+                with open(dill_file, "wb") as f:
+                    dill.dump(self.finnish_process, f)
+                return dill_file
+            
+            self.finnish_process.save = save
+        return auth_url
+
+
+    def run_open_server(self, host: str, port: int, success_message: str):
+        web_app = _WsgiApp(success_message)
+        web_server = simple_server.make_server(host= host, port= port, app= web_app)
+        web_server.handle_request()
+        authorization_response = web_app.last_request_uri.replace(
+            'http', 'https')
+        self.finnish_process(authorization_response= authorization_response)
+
+
+
+    def finnish_process(self, code= None, authorization_response= None):
+        kwargs = {}
+        if code:
+            kwargs['code'] = code
+        elif authorization_response:
+            kwargs['authorization_response'] = authorization_response
+        _fix_google_ster_issues()
+        self.flow.fetch_token(**kwargs)
+        creds = self.flow.credentials
+        self._save_creds(creds)
+        self._get_service()
+        return self
 
 
     @staticmethod
@@ -183,7 +212,7 @@ def url_auth(
     version: str = None,
     ):
     service = GoogleService(api= api, session= session, client_secrets= client_secrets, scopes= scopes, version= version, auth_type = 'url')
-    url, finnish_process = service.get_auth_url()
+    url = service.get_auth_url()
     code = input(f'{url}\nenter code: ')
-    finnish_process(code)
+    service.finnish_process(code)
     return service

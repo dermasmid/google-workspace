@@ -18,6 +18,8 @@ import traceback
 import logging
 from socket import timeout
 from datetime import datetime
+from wsgiref import util
+
 import __main__
 
 
@@ -273,3 +275,18 @@ def _error_handling_decorator(execute_fn):
 
 def _add_error_handler_for_api_client():
     HttpRequest.execute = _error_handling_decorator(HttpRequest.execute)
+
+
+
+class _WsgiApp:
+
+    def __init__(self, success_message):
+
+        self.last_request_uri = None
+        self._success_message = success_message
+
+    def __call__(self, environ, start_response):
+
+        start_response('200 OK', [('Content-type', 'text/plain')])
+        self.last_request_uri = util.request_uri(environ)
+        return [self._success_message.encode('utf-8')]
