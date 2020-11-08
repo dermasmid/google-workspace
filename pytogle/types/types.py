@@ -1,11 +1,3 @@
-class LocalAuth:
-    pass
-
-
-class UrlAuth:
-    pass
-
-
 class Scope:
 
 

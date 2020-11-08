@@ -6,7 +6,6 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 import dill
 from ..service.utils import _fix_google_ster_issues, alt_build, default_versions, get_default_scopes, get_creds_file, _add_error_handler_for_api_client
-from ..types import LocalAuth, UrlAuth
 from httplib2 import Http
 
 
@@ -21,7 +20,7 @@ class GoogleService(Resource):
         client_secrets: str = "creds.json",
         scopes: list = [],
         version: str = None,
-        auth_type = None,
+        auth_type = 'local',
         api_key: str = None,
         http: Http = None,
         service: Resource = None,
@@ -63,13 +62,13 @@ class GoogleService(Resource):
             else:
                 self.client_secrets = get_creds_file(client_secrets)
                 self.scopes = list(scope.scope_code for scope in scopes or get_default_scopes(self.api))
-                self.auth_type = auth_type or LocalAuth()
+                self.auth_type = auth_type
 
 
-                if isinstance(self.auth_type, LocalAuth):
+                if self.auth_type == 'local':
                     self.authenticate_local()
 
-                elif isinstance(self.auth_type, UrlAuth):
+                elif self.auth_type == 'url':
                     _fix_google_ster_issues()
 
     
@@ -78,7 +77,7 @@ class GoogleService(Resource):
 
     def authenticate_local(self):
         flow = InstalledAppFlow.from_client_secrets_file(self.client_secrets, self.scopes)
-        creds = flow.run_local_server(port=0)
+        creds = flow.run_local_server(port=2626)
         self._save_creds(creds)
         self._get_service()
         return self
@@ -174,3 +173,17 @@ class GoogleService(Resource):
         with open(self.pickle_file, 'wb') as token:
             pickle.dump(creds, token)
 
+
+
+def url_auth(
+    api: str,
+    session: str = None,
+    client_secrets: str = "creds.json",
+    scopes: list = [],
+    version: str = None,
+    ):
+    service = GoogleService(api= api, session= session, client_secrets= client_secrets, scopes= scopes, version= version, auth_type = 'url')
+    url, finnish_process = service.get_auth_url()
+    code = input(f'{url}\nenter code: ')
+    finnish_process(code)
+    return service

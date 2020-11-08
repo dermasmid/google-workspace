@@ -1,1 +1,1 @@
-from .service import GoogleService
+from .service import GoogleService, url_auth
