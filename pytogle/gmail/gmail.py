@@ -33,7 +33,6 @@ class Gmail(GmailBase):
                 kwargs['scopes'] = [ReadonlyGmailScope()]
             self.service = GoogleService(api= "gmail", **kwargs)
         self.prevent_flood = False
-        self.flood_prevention = FloodPrevention
         self.get_user()
 
 
@@ -218,3 +217,6 @@ class Gmail(GmailBase):
         data = self.service.labels_service.create(userId= 'me', body= body).execute()
         return self.get_label_by_id(data['id'])
 
+
+    def set_flood_prevention(self, similarities: list, after_date: date or datetime or int, number_of_messages: int = 1):
+        self.flood_prevention = FloodPrevention(similarities, after_date, number_of_messages)
