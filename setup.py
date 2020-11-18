@@ -5,7 +5,7 @@ import re
 with open('README.md', encoding='utf-8') as f:
     readme = f.read()
 
-with open("pytogle/__init__.py", encoding="utf-8") as f:
+with open("google-workspace/__init__.py", encoding="utf-8") as f:
     version = re.findall("__version__ = '(.+)'", f.read())[0]
 
 
@@ -16,16 +16,16 @@ with open("requirements.txt", encoding="utf-8") as f:
 
 
 setup(
-    name = 'Pytogle',
+    name = 'google-workspace',
     version = version,
     packages = find_packages(),
-    url = 'https://github.com/dermasmid/pytogle',
+    url = 'https://github.com/dermasmid/python-google-workspace',
     license = 'MIT',
     long_description = readme,
     long_description_content_type = 'text/markdown',
     author = 'Cheskel Twersky',
     author_email= 'yoursn21@gmail.com',
-    description = 'A Python wrapper for the google APIs',
+    description = 'A Python wrapper for the google workspace APIs',
     keywords = 'gmail gmail-api drive google-drive google-drive-api api-wrapper python3 python',
     classifiers = [
         "Programming Language :: Python :: 3",
