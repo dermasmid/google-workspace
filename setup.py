@@ -5,7 +5,7 @@ import re
 with open('README.md', encoding='utf-8') as f:
     readme = f.read()
 
-with open("google-workspace/__init__.py", encoding="utf-8") as f:
+with open("google_workspace/__init__.py", encoding="utf-8") as f:
     version = re.findall("__version__ = '(.+)'", f.read())[0]
 
 

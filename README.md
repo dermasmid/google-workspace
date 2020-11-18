@@ -15,9 +15,9 @@ After you saved the json file to your workdir - you are all set!
 To use the Gmail API simply create a python file and enter this:
 
 ``` python
-import google-workspace
+import google_workspace
 
-mailbox = google-workspace.gmail.Gmail()
+mailbox = google_workspace.gmail.Gmail()
 
 for msg in mailbox.get_messages('inbox'):
     print(msg)
