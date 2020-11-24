@@ -188,7 +188,7 @@ class Gmail(GmailBase):
         )
 
 
-    def get_label_by_id(self, label_id):
+    def get_label_by_id(self, label_id: str):
             label_data = self._get_label_raw_data(label_id)
             return Label(label_data, self)
 
@@ -220,3 +220,23 @@ class Gmail(GmailBase):
 
     def set_flood_prevention(self, similarities: list, after_date: date or datetime or int, number_of_messages: int = 1):
         self.flood_prevention = FloodPrevention(similarities, after_date, number_of_messages)
+
+
+    def delete_message(self, message_id: str):
+        return self.service.message_service.delete(userId= 'me', id= message_id).execute()
+
+
+    def trash_message(self, message_id: str):
+        return self.service.message_service.trash(userId= 'me', id= message_id).execute()
+
+
+    def untrash_message(self, message_id: str):
+        return self.service.message_service.untrash(userId= 'me', id= message_id).execute()
+
+
+    def mark_message_as_read(self, message_id: str):
+        return self.service.message_service.modify(userId= 'me', id= message_id, body= {'removeLabelIds': ['UNREAD']}).execute()
+
+
+    def mark_message_as_unread(self, message_id: str):
+        return self.service.message_service.modify(userId= 'me', id= message_id, body= {'addLabelIds': ['UNREAD']}).execute()

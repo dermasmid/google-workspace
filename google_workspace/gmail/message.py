@@ -85,34 +85,31 @@ class Message:
 
 
     def add_label(self, label_id: str):
-        message = self.mailbox.service.message_service.modify(userId= 'me', id= self.gmail_id, body= {'addLabelIds': [get_label_id(label_id)]}).execute()
-        return message
+        return self.mailbox.service.message_service.modify(userId= 'me', id= self.gmail_id, body= {'addLabelIds': [get_label_id(label_id)]}).execute()
 
 
     def remove_label(self, label_id: str):
-        message = self.mailbox.service.message_service.modify(userId= 'me', id= self.gmail_id, body= {'removeLabelIds': [get_label_id(label_id)]}).execute()
-        return message
+        return self.mailbox.service.message_service.modify(userId= 'me', id= self.gmail_id, body= {'removeLabelIds': [get_label_id(label_id)]}).execute()
+
 
     def mark_read(self):
-        message = self.mailbox.service.message_service.modify(userId= 'me', id= self.gmail_id, body= {'removeLabelIds': ['UNREAD']}).execute()
-        return message
+        return self.mailbox.mark_message_as_read(self.gmail_id)
+
 
     def mark_unread(self):
-        message = self.mailbox.service.message_service.modify(userId= 'me', id= self.gmail_id, body= {'addLabelIds': ['UNREAD']}).execute()
-        return message
+        return self.mailbox.mark_message_as_unread(self.gmail_id)
+
 
     def delete(self):
-        self.mailbox.service.message_service.delete(userId= 'me', id= self.gmail_id).execute()
+        return self.mailbox.delete_message(self.gmail_id)
 
 
     def trash(self):
-        message = self.mailbox.service.message_service.trash(userId= 'me', id= self.gmail_id).execute()
-        return message
+        return self.mailbox.trash_message()
 
 
     def untrash(self):
-        message = self.mailbox.service.message_service.untrash(userId= 'me', id= self.gmail_id).execute()
-        return message
+        return self.mailbox.untrash_message(self.gmail_id)
 
 
     def reply(
