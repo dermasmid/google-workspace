@@ -53,7 +53,8 @@ def get_creds_file(creds):
                     json_data = json.load(f)
                 except json.decoder.JSONDecodeError:
                     continue
-            if json_data.get(list(json_data.keys())[0], {}).get('client_id'):
+            root_element = json_data.get(list(json_data.keys())[0])
+            if isinstance(root_element, dict) and root_element.get('client_id'):
                 valid_creds.append(json_file)
         if len(valid_creds) > 1:
             raise Exception("I found more then one valid client secrets file, please remove one or explictly pass the path to the one you want to use")

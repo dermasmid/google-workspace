@@ -13,7 +13,7 @@ from datetime import datetime, date
 import base64
 from html.parser import HTMLParser
 
-_not_important_tags = ('title', 'style')
+_not_important_tags = ('title', 'style', 'script')
 def _handle_data(self, data):
     data = data.strip()
     if data and self.important_tag:
