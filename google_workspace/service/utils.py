@@ -267,10 +267,11 @@ def _error_handling_decorator(execute_fn):
                     else:
                         f.write('handled: False\n\n')
                         raise e
-                    print(f'Sleeping for 30 secs, time: {x}')
-                    sleep(30)
-            if x == 5:
-                raise e
+                print(f'Sleeping for 30 secs, time: {x}')
+                sleep(30)
+                
+                if x == 5:
+                    raise e
     return execute
 
 
