@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 try:
     import google_auth_httplib2
-except ImportError:  # pragma: NO COVER
+except ImportError:
     google_auth_httplib2 = None
 
 
@@ -269,7 +269,7 @@ def _error_handling_decorator(execute_fn):
                         raise e
                 print(f'Sleeping for 30 secs, time: {x}')
                 sleep(30)
-                
+
                 if x == 5:
                     raise e
     return execute
