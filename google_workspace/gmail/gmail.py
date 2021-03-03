@@ -77,7 +77,8 @@ class Gmail(GmailBase):
         subject: str = None,
         after: date = None,
         before: date = None,
-        label_name: str = None
+        label_name: str = None,
+        include_spam_and_trash: bool = False
         ):
 
         query = gmail_query_maker(seen, from_, to, subject, after, before, label_name)
@@ -90,7 +91,7 @@ class Gmail(GmailBase):
 
 
         next_page_token = None
-        messages, next_page_token = self._get_messages(next_page_token, label_ids, query)
+        messages, next_page_token = self._get_messages(next_page_token, label_ids, query, include_spam_and_trash)
         
         while True:
             try:
@@ -99,7 +100,7 @@ class Gmail(GmailBase):
             except StopIteration:
                 if not next_page_token:
                     break
-                messages, next_page_token = self._get_messages(next_page_token, label_ids, query)
+                messages, next_page_token = self._get_messages(next_page_token, label_ids, query, include_spam_and_trash)
                 continue
 
             else:
@@ -115,16 +116,15 @@ class Gmail(GmailBase):
 
     def handle_new_messages(self, func, handle_old_unread: bool = False, sleep: int = 3, mark_read: bool = False, include_spam: bool = False):
         history_id = self.history_id
-        label_ids = ['INBOX'] if not include_spam else ['INBOX', 'SPAM']
         if handle_old_unread:
-            msgs = self.get_messages(label_ids, seen= False)
+            msgs = self.get_messages('inbox', seen= False, include_spam_and_trash= include_spam)
             for msg in msgs:
                 func(msg)
                 if mark_read:
                     msg.mark_read()
         while True:
             print(f"Checking for messages - {datetime.now()}")
-            results = self._get_history_data(history_id, ['messageAdded'], label_ids= label_ids)
+            results = self._get_history_data(history_id, ['messageAdded'], label_ids= ['INBOX'] if not include_spam else ['INBOX', 'SPAM'])
             history_id = results['history_id']
             for message_id in results.get('messagesAdded', []):
                 print("New message!")

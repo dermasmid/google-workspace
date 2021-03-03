@@ -5,8 +5,8 @@ from .message import Message
 
 class GmailBase:
 
-    def _get_messages(self, next_page_token, label_ids, query):
-        kwargs = {'userId': 'me', 'pageToken': next_page_token, 'q': query}
+    def _get_messages(self, next_page_token, label_ids, query, include_spam_and_trash):
+        kwargs = {'userId': 'me', 'pageToken': next_page_token, 'q': query, 'includeSpamTrash': include_spam_and_trash}
         if label_ids:
             kwargs['labelIds'] = label_ids
         data = self.service.message_service.list(**kwargs).execute()
@@ -74,7 +74,7 @@ class GmailBase:
             value = message[similarity]
             kwargs[similarity] = value
         query = gmail_query_maker(**kwargs)
-        messages = self._get_messages(None, ['SENT'], query)[0]
+        messages = self._get_messages(None, ['SENT'], query, False)[0]
         if type(flood_prevention.after_date) is datetime:
             final_messages = []
             for message in messages:
