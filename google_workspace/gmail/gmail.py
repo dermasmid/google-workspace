@@ -113,17 +113,18 @@ class Gmail(GmailBase):
         return Message(raw_message, self)
 
 
-    def handle_new_messages(self, func, handle_old_unread: bool = False, sleep: int = 3, mark_read: bool = False):
+    def handle_new_messages(self, func, handle_old_unread: bool = False, sleep: int = 3, mark_read: bool = False, include_spam: bool = False):
         history_id = self.history_id
+        label_ids = ['INBOX'] if not include_spam else ['INBOX', 'SPAM']
         if handle_old_unread:
-            msgs = self.get_messages('inbox', seen= False)
+            msgs = self.get_messages(label_ids, seen= False)
             for msg in msgs:
                 func(msg)
                 if mark_read:
                     msg.mark_read()
         while True:
             print(f"Checking for messages - {datetime.now()}")
-            results = self._get_history_data(history_id, ['messageAdded'], label_id= 'INBOX')
+            results = self._get_history_data(history_id, ['messageAdded'], label_ids= label_ids)
             history_id = results['history_id']
             for message_id in results.get('messagesAdded', []):
                 print("New message!")

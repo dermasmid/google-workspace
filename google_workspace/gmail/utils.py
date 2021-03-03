@@ -275,4 +275,3 @@ def gmail_query_maker(
         query += f"label:{get_label_id(label_name)}"
 
     return query
-

@@ -3,3 +3,4 @@ notes.txt
 build/
 dist/
 *.egg-info/
+*.code-workspace

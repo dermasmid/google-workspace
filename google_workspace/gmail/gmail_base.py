@@ -24,14 +24,12 @@ class GmailBase:
         full_data = self.service.message_service.get(userId = "me", id= message_id).execute()
         return full_data
 
-    def _get_history_data(self, start_history_id: int, history_types: list, label_id: str = None):
+    def _get_history_data(self, start_history_id: int, history_types: list, label_ids: list = None):
         perams = {
             'userId': 'me',
             'startHistoryId': start_history_id,
             'historyTypes': history_types
         }
-        if label_id:
-            perams['labelId'] = label_id    # there's a bug that the api returns sent and draft emails that are a reply
         data = self.service.history_service.list(**perams).execute()
         results = {}
         results['history_id'] = data['historyId']
@@ -45,8 +43,9 @@ class GmailBase:
                         results[returned_type] = []
                     for message in history[returned_type]:
                         message = message['message']
-                        if label_id in message['labelIds']:
-                            results[returned_type].append(message['id'])
+                        if label_ids:
+                            if any(label_id in message['labelIds'] for label_id in label_ids):
+                                results[returned_type].append(message['id'])
         return results
 
 
