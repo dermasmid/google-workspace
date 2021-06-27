@@ -219,6 +219,9 @@ class Gmail(GmailBase):
         return self.get_label_by_id(data['id'])
 
 
+    def get_filters(self):
+        return self.service.settings_service.filters().list(userId= 'me').execute()
+
     def set_flood_prevention(self, similarities: list, after_date: date or datetime or int, number_of_messages: int = 1):
         self.flood_prevention = FloodPrevention(similarities, after_date, number_of_messages)
 

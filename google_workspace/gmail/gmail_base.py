@@ -44,7 +44,8 @@ class GmailBase:
                     for message in history[returned_type]:
                         message = message['message']
                         if label_ids:
-                            if any(label_id in message['labelIds'] for label_id in label_ids):
+                            message_labels = message.get('labelIds', [])
+                            if any(label_id in message_labels for label_id in label_ids):
                                 results[returned_type].append(message['id'])
         return results
 

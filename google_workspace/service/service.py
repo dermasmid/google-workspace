@@ -202,6 +202,7 @@ class GoogleService(Resource):
             self.history_service = self.users_service.history()
             self.message_service = self.users_service.messages()
             self.labels_service = self.users_service.labels()
+            self.settings_service = self.users_service.settings()
             self.attachment_service = self.message_service.attachments()
         elif self.api == "drive":
             self.files_service = self.files()
