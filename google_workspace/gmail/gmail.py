@@ -5,12 +5,9 @@ from .utils import make_message, make_label_dict, get_label_id, encode_if_not_en
 from .message import Message
 from .label import Label, LabelShow, MessageShow
 from .scopes import ReadonlyGmailScope
-from .gmail_base import GmailBase
 from .flood_prevention import FloodPrevention
-import os
 import time
-from datetime import datetime, timedelta, date
-import smtplib, ssl
+from datetime import datetime, date
 from email.utils import getaddresses
 
 
@@ -18,7 +15,7 @@ from email.utils import getaddresses
 
 
 
-class Gmail(GmailBase):
+class Gmail:
 
 
     def __init__(self, service: GoogleService or str = None, allow_modify: bool = True):
@@ -42,6 +39,7 @@ class Gmail(GmailBase):
 
     def __str__(self):
         return f"email: {self.email_address}, scopes: {self.service.authenticated_scopes}"
+
 
     def get_user(self):
         self.user = self.service.users().getProfile(userId= "me").execute()
@@ -91,7 +89,7 @@ class Gmail(GmailBase):
 
 
         next_page_token = None
-        messages, next_page_token = self._get_messages(next_page_token, label_ids, query, include_spam_and_trash)
+        messages, next_page_token = _get_messages(self.service, next_page_token, label_ids, query, include_spam_and_trash)
         
         while True:
             try:
@@ -100,17 +98,17 @@ class Gmail(GmailBase):
             except StopIteration:
                 if not next_page_token:
                     break
-                messages, next_page_token = self._get_messages(next_page_token, label_ids, query, include_spam_and_trash)
+                messages, next_page_token = _get_messages(self.service, next_page_token, label_ids, query, include_spam_and_trash)
                 continue
 
             else:
-                yield Message(self._get_message_raw_data(message_id), self)
+                yield Message(_get_message_raw_data(self.service, message_id), self)
 
 
 
 
     def get_message_by_id(self, message_id: str):
-        raw_message = self._get_message_raw_data(message_id)
+        raw_message = _get_message_raw_data(self.service, message_id)
         return Message(raw_message, self)
 
 
@@ -124,10 +122,9 @@ class Gmail(GmailBase):
                     msg.mark_read()
         while True:
             print(f"Checking for messages - {datetime.now()}")
-            results = self._get_history_data(history_id, ['messageAdded'], label_ids= ['INBOX'] if not include_spam else ['INBOX', 'SPAM'])
+            results = _get_history_data(self.service, history_id, ['messageAdded'], label_ids= ['INBOX'] if not include_spam else ['INBOX', 'SPAM'])
             history_id = results['history_id']
             for message_id in results.get('messagesAdded', []):
-                print("New message!")
                 message = self.get_message_by_id(message_id)
                 func(message)
                 if mark_read:
@@ -151,7 +148,7 @@ class Gmail(GmailBase):
         ):
         if check_for_floods or self.prevent_flood:
             args = vars()
-            if self._check_if_sent_similar_message(args, check_for_floods or self.flood_prevention):
+            if _check_if_sent_similar_message(self, args, check_for_floods or self.flood_prevention):
                 return False
         message = make_message(
             self.email_address, 
@@ -190,13 +187,13 @@ class Gmail(GmailBase):
 
 
     def get_label_by_id(self, label_id: str):
-            label_data = self._get_label_raw_data(label_id)
+            label_data = _get_label_raw_data(self.service, label_id)
             return Label(label_data, self)
 
 
 
     def get_lables(self):
-        labels_data = self._get_labels()
+        labels_data = _get_labels(self.service)
         for label in labels_data['labels']:
             yield self.get_label_by_id(label['id'])
 
@@ -244,3 +241,87 @@ class Gmail(GmailBase):
 
     def mark_message_as_unread(self, message_id: str):
         return self.service.message_service.modify(userId= 'me', id= message_id, body= {'addLabelIds': ['UNREAD']}).execute()
+
+
+
+# Helper functions
+def _get_messages(service, next_page_token, label_ids, query, include_spam_and_trash):
+    kwargs = {'userId': 'me', 'pageToken': next_page_token, 'q': query, 'includeSpamTrash': include_spam_and_trash}
+    if label_ids:
+        kwargs['labelIds'] = label_ids
+    data = service.message_service.list(**kwargs).execute()
+    messages = iter(data.get("messages", []))
+    next_page_token = data.get("nextPageToken", None)
+    return messages, next_page_token
+
+
+def _get_message_raw_data(service, message_id):
+    raw_message = service.message_service.get(userId = "me", id= message_id, format= "raw").execute()
+    return raw_message
+
+
+def _get_message_full_data(service, message_id):
+    full_data = service.message_service.get(userId = "me", id= message_id).execute()
+    return full_data
+
+def _get_history_data(service, start_history_id: int, history_types: list, label_ids: list = None):
+    perams = {
+        'userId': 'me',
+        'startHistoryId': start_history_id,
+        'historyTypes': history_types
+    }
+    data = service.history_service.list(**perams).execute()
+    results = {}
+    results['history_id'] = data['historyId']
+    histories = data.get("history")
+    if histories:
+        for history in histories:
+            del history['messages']
+            del history['id']
+            for returned_type in history:
+                if not returned_type in results:
+                    results[returned_type] = []
+                for message in history[returned_type]:
+                    message = message['message']
+                    if label_ids:
+                        message_labels = message.get('labelIds', [])
+                        if any(label_id in message_labels for label_id in label_ids):
+                            results[returned_type].append(message['id'])
+    return results
+
+
+def _get_labels(service):
+    data = service.labels_service.list(userId= 'me').execute()
+    return data
+
+
+
+def _get_label_raw_data(service, label_id: str):
+    data = service.labels_service.get(userId= 'me', id= label_id).execute()
+    return data
+
+
+def _check_if_sent_similar_message(mailbox, message, flood_prevention):
+    kwargs = {}
+    # if raw_from is passed we have to remove the name first becuz the api wont return anything
+    if 'to' in flood_prevention.similarities:
+        to = message['to']
+        if '<' in to:
+            start = to.find('<') + 1
+            end = to.find('>')
+            message['to'] = to[start:end]
+    kwargs['after'] = flood_prevention.after_date
+    for similarity in flood_prevention.similarities:
+        value = message[similarity]
+        kwargs[similarity] = value
+    query = gmail_query_maker(**kwargs)
+    messages = _get_messages(mailbox.service, None, ['SENT'], query, False)[0]
+    if type(flood_prevention.after_date) is datetime:
+        final_messages = []
+        for message in messages:
+            message_date = Message(_get_message_raw_data(mailbox.service, message['id']), mailbox).date
+            if flood_prevention.after_date < message_date:
+                final_messages.append(message)
+        messages = final_messages
+    response = len(list(messages)) >= flood_prevention.number_of_messages
+    return response
