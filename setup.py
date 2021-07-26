@@ -1,5 +1,4 @@
 from setuptools import setup, find_packages
-import re
 from google_workspace import __version__
 
 
