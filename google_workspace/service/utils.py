@@ -1,10 +1,9 @@
 import os
 import json
-import requests_oauthlib
 from googleapiclient._helpers import positional
 from googleapiclient import discovery
 import six
-from six.moves.urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse, parse_qs
 from googleapiclient.schema import Schemas
 from googleapiclient import _auth
 from googleapiclient.model import JsonModel
@@ -19,6 +18,10 @@ import logging
 from socket import timeout
 from datetime import datetime
 import wsgiref
+from collections.abc import Mapping
+import socket
+from wsgiref import simple_server
+import ssl
 
 import __main__
 
@@ -63,29 +66,6 @@ def get_creds_file(creds):
         except IndexError:
             raise Exception('I found no creds json file!!!! please go to the google console and download the creds file.')
             
-
-
-
-
-
-def _fix_google_ster_issues():
-    def __getstate__(self):
-        attri = self.__dict__
-        state = {}
-        for attribute in attri:
-            state[attribute] = attri[attribute]
-        return state
-
-    def __setstate__(self, state):
-        for attr, value in state.items():
-            try:
-                setattr(self, attr, value)
-            except:
-                pass
-
-            
-    requests_oauthlib.OAuth2Session.__getstate__ = __getstate__
-    requests_oauthlib.OAuth2Session.__setstate__ = __setstate__
 
 
 
@@ -136,7 +116,7 @@ def build_from_document(
 
     base = urljoin(service["rootUrl"], service["servicePath"])
     if client_options:
-        if isinstance(client_options, six.moves.collections_abc.Mapping):
+        if isinstance(client_options, Mapping):
             client_options = google.api_core.client_options.from_dict(client_options)
         if client_options.api_endpoint:
             base = client_options.api_endpoint
@@ -279,25 +259,85 @@ def _add_error_handler_for_api_client():
     HttpRequest.execute = _error_handling_decorator(HttpRequest.execute)
 
 
-
-class _WsgiApp:
-
-
-    def __init__(self, success_message):
-
-        self.last_request_uri = None
-        self._success_message = success_message
-
-    def __call__(self, environ, start_response):
-
-        start_response('200 OK', [('Content-type', 'text/plain')])
-        self.last_request_uri = wsgiref.util.request_uri(environ)
-        return [self._success_message.encode('utf-8')]
-
-
-
-class _AltWsgiHandler(wsgiref.simple_server.WSGIRequestHandler):
-
-
+class ServerHandler(wsgiref.simple_server.WSGIRequestHandler):
     def log_message(self, format, *args):
         pass
+
+class OauthServer:
+
+    def __init__(
+        self,
+        server_port: int,
+        message: str,
+        keyfile: str = None,
+        certfile: str = None,
+        fetch_token: callable = None,
+    ) -> None:
+        self.server_port = server_port
+        self.fetch_token = fetch_token
+        self.message = message
+        self.keyfile = keyfile
+        self.certfile = certfile
+        self.is_ssl = keyfile and certfile
+
+    def wsgi_app(self, environ, respond):
+        respond('200 OK', [('Content-type', 'text/plain')])
+        request_uri = wsgiref.util.request_uri(environ).replace('http', 'https', 1)
+        query = parse_qs(urlparse(request_uri).query)
+        if query.get('state') and query.get('code') and query.get('scope'):
+            if self.fetch_token:
+                self.fetch_token(authorization_response= request_uri, state= query.get('state')[0])
+            else:
+                self.authorization_response = request_uri
+            self.server._BaseServer__shutdown_request = True
+            return [self.message.encode('utf-8')]
+        else:
+            return [b'failed']
+
+    def start(self):
+        self.server = simple_server.make_server(
+            host= '',
+            port= self.server_port,
+            app= self.wsgi_app,
+            handler_class= ServerHandler,
+            )
+        if self.is_ssl:
+            self.server.socket = ssl.wrap_socket(self.server.socket, keyfile= self.keyfile, certfile= self.certfile)
+        self.server.serve_forever()
+        if not self.fetch_token:
+            return self.authorization_response
+
+
+def port_is_available(port: int) -> bool:
+    is_available = True
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.bind('127.0.0.1', port)
+        sock.close()
+    except OSError:
+        is_available = False
+    return is_available
+
+
+def get_available_allowed_port(client_config: dict, server_host: str) -> int:
+    allowed_ports = {}
+    for url in client_config['redirect_uris']:
+        parsed = urlparse(url)
+        port = parsed.port
+        scheme = parsed.scheme
+        hostname = parsed.hostname
+        if hostname:
+            if not port:
+                if scheme == 'http':
+                    port = 80
+                elif scheme == 'https':
+                    port = 443
+            if not hostname in allowed_ports:
+                allowed_ports[hostname] = []
+            allowed_ports[hostname].append(port)
+
+    for port in allowed_ports[server_host]:
+        if port_is_available(port):
+            return port
+    raise ValueError("""There's no availabl ports that are allowed to be used by your app, please update your
+            allowed redirect URIs in the cloud console and update the client secrets json file""")
