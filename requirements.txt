@@ -1,4 +1,3 @@
 google-api-python-client
 google-auth-oauthlib
-dill
 python-magic
