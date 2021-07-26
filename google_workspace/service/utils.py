@@ -37,7 +37,7 @@ except ImportError:
 
 
 default_versions = {
-    "drive": "v3", 
+    "drive": "v3",
     "gmail": "v1",
     "photoslibrary": "v1"
     }
@@ -65,7 +65,7 @@ def get_creds_file(creds):
             return valid_creds[0]
         except IndexError:
             raise Exception('I found no creds json file!!!! please go to the google console and download the creds file.')
-            
+
 
 
 
@@ -312,7 +312,7 @@ def port_is_available(port: int) -> bool:
     is_available = True
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        sock.bind('127.0.0.1', port)
+        sock.bind(('127.0.0.1', port))
         sock.close()
     except OSError:
         is_available = False
@@ -321,7 +321,7 @@ def port_is_available(port: int) -> bool:
 
 def get_available_allowed_port(client_config: dict, server_host: str) -> int:
     allowed_ports = {}
-    for url in client_config['redirect_uris']:
+    for url in client_config['web']['redirect_uris']:
         parsed = urlparse(url)
         port = parsed.port
         scheme = parsed.scheme
