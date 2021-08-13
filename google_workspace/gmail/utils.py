@@ -13,6 +13,15 @@ from datetime import datetime, date
 import base64
 from html.parser import HTMLParser
 
+
+handler_update_key_to_type_map = {
+    'messagesAdded': 'messageAdded',
+    'messagesDeleted': 'messageDeleted',
+    'labelsAdded': 'labelAdded',
+    'labelsRemoved': 'labelRemoved'
+}
+
+
 _not_important_tags = ('title', 'style', 'script')
 def _handle_data(self, data):
     data = data.strip()
@@ -275,3 +284,12 @@ def gmail_query_maker(
         query += f"label:{get_label_id(label_name)}"
 
     return query
+
+
+def format_update(raw_update):
+    keys = list(raw_update.keys())
+    keys.remove('id')
+    keys.remove('messages')
+    update_key = keys[0]
+    update_type = handler_update_key_to_type_map[update_key]
+    return {'type': update_type, 'updates': raw_update[update_key], 'history_id': raw_update['id']}

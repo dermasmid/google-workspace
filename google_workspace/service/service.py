@@ -128,6 +128,18 @@ class GoogleService(Resource):
         return None
 
 
+    def make_thread_safe(self):
+        creds = self._http.credentials
+        utils._add_error_handler_for_api_client(creds)
+
+
+    def save_state(self, history_id):
+        with open(self.pickle_file, 'wb') as f:
+            pickle.dump(self._http.credentials, f)
+            self.service_state['history_id'] = history_id
+            pickle.dump(self.service_state, f)
+
+
     def __bool__(self):
         return self.is_authenticated
 
@@ -135,6 +147,10 @@ class GoogleService(Resource):
     def _get_service(self):
         with open(self.pickle_file, 'rb') as f:
             creds = pickle.load(f)
+            try:
+                self.service_state = pickle.load(f)
+            except EOFError:
+                self.service_state = {}
         if not creds or not creds.valid:
             creds.refresh(Request())
         service = self._get_service_args(creds)

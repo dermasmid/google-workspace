@@ -1,14 +1,19 @@
 import base64
 from datetime import date, datetime
+from queue import Empty, Queue
+from threading import Thread, Event
+from typing import Union
+import functools
+import signal
 from ..service import GoogleService
-from .utils import make_message, make_label_dict, get_label_id, encode_if_not_english, gmail_query_maker
+from . import utils
 from .message import Message
+from .handlers import MessageAddedHandler
 from .label import Label, LabelShow, MessageShow
 from .scopes import ReadonlyGmailScope
 from .flood_prevention import FloodPrevention
 import time
 from datetime import datetime, date
-from email.utils import getaddresses
 
 
 
@@ -18,7 +23,13 @@ from email.utils import getaddresses
 class Gmail:
 
 
-    def __init__(self, service: GoogleService or str = None, allow_modify: bool = True):
+    def __init__(
+        self,
+        service: GoogleService or str = None,
+        allow_modify: bool = True,
+        workers: int = 4,
+        save_state: bool = False
+        ):
         if isinstance(service, GoogleService):
             self.service = service
 
@@ -30,7 +41,13 @@ class Gmail:
                 kwargs['scopes'] = [ReadonlyGmailScope()]
             self.service = GoogleService(api= "gmail", **kwargs)
         self.prevent_flood = False
-        self.get_user()
+        self.workers = workers
+        self.save_state = save_state
+        self.handlers = {}
+        self.updates_queue = Queue()
+        self.stop_request = Event()
+        if self.service.is_authenticated:
+            self.get_user()
 
 
     def __len__(self):
@@ -52,7 +69,7 @@ class Gmail:
 
     @sender_name.setter
     def sender_name(self, sender_name):
-        sender_name = encode_if_not_english(sender_name)
+        sender_name = utils.encode_if_not_english(sender_name)
         self.user['sender_name'] = sender_name
 
 
@@ -79,13 +96,13 @@ class Gmail:
         include_spam_and_trash: bool = False
         ):
 
-        query = gmail_query_maker(seen, from_, to, subject, after, before, label_name)
+        query = utils.gmail_query_maker(seen, from_, to, subject, after, before, label_name)
 
         if label_ids:
             if isinstance(label_ids, str):
-                label_ids = [get_label_id(label_ids)]
-            elif isinstance(label_ids, str):
-                label_ids = list(map(get_label_id, label_ids))
+                label_ids = [utils.get_label_id(label_ids)]
+            elif isinstance(label_ids, list):
+                label_ids = list(map(utils.get_label_id, label_ids))
 
 
         next_page_token = None
@@ -112,24 +129,101 @@ class Gmail:
         return Message(raw_message, self)
 
 
-    def handle_new_messages(self, func, handle_old_unread: bool = False, sleep: int = 3, mark_read: bool = False, include_spam: bool = False):
-        history_id = self.history_id
-        if handle_old_unread:
-            msgs = self.get_messages('inbox', seen= False, include_spam_and_trash= include_spam)
-            for msg in msgs:
-                func(msg)
-                if mark_read:
-                    msg.mark_read()
+    def add_handler(self, handler):
+        self.handlers[handler.history_type] = self.handlers.get(handler.history_type, []) + [handler]
+
+
+    def update_worker(self):
         while True:
-            print(f"Checking for messages - {datetime.now()}")
-            results = _get_history_data(self.service, history_id, ['messageAdded'], label_ids= ['INBOX'] if not include_spam else ['INBOX', 'SPAM'])
-            history_id = results['history_id']
-            for message_id in results.get('messagesAdded', []):
-                message = self.get_message_by_id(message_id)
-                func(message)
-                if mark_read:
-                    message.mark_read()
-            time.sleep(sleep)
+            full_update = self.updates_queue.get()
+            if full_update is None:
+                break
+            update_type = full_update['type']
+            for update in full_update['updates']:
+                message = self.get_message_by_id(update['message']['id'])
+                for handler in self.handlers[update_type]:
+                    if handler.check(message):
+                        handler.callback(message)
+
+
+    def get_updates(self):
+        ''' This is the main function which looks for updates on the
+        account, and adds it to the queue.
+        '''
+        history_id = self.history_id
+        if self.service.service_state.get('history_id') and self.save_state:
+            history_id = self.service.service_state['history_id']
+        history_types = list(self.handlers.keys())
+        # If there's no handler's - quit.
+        while history_types:
+            try:
+                data = _get_history_data(self.service, history_id, history_types)
+                history_id = data['historyId']
+                for history in data.get('history', []):
+                    if len(history) == 3:
+                        self.updates_queue.put(utils.format_update(history))
+                if self.stop_request.is_set():
+                    break
+                time.sleep(0.5)
+            except Exception as e:
+                self._handle_stop(history_id)
+                raise e
+        self._handle_stop(history_id)
+
+        
+
+    def _handle_stop(self, history_id):
+        if not self.save_state:
+            with self.updates_queue.mutex:
+                self.updates_queue.queue.clear()
+        else:
+            queue_items = []
+            while True:
+                try:
+                    queue_items.append(self.updates_queue.get_nowait())
+                except Empty:
+                    break
+            if queue_items:
+                oldest_history_id = queue_items[0]['history_id']
+            else:
+                oldest_history_id = history_id
+            self.service.save_state(int(oldest_history_id) - 1)
+
+        # Stop the workers.
+        for _ in range(self.workers):
+            self.updates_queue.put(None)
+
+
+    def run(self):
+        self.service.make_thread_safe()
+        signal.signal(signal.SIGINT, self.stop)
+        signal.signal(signal.SIGTERM, self.stop)
+        for _ in range(self.workers):
+            thread = Thread(target=self.update_worker)
+            thread.start()
+
+        self.get_updates()
+
+
+    def stop(self, signum= None, frame= None):
+        self.stop_request.set()
+
+
+    def on_message(
+        self,
+        func: callable = None,
+        labels: Union[list, str] = None,
+        from_is: str = None,
+        subject_is: str = None,
+        subject_has: str = None
+        ):
+        @functools.wraps(func)
+        def decorator(func):
+            self.add_handler(MessageAddedHandler(func, labels, from_is, subject_is, subject_has))
+
+        if func:
+            return decorator(func)
+        return decorator
 
 
     def send_message(
@@ -150,7 +244,7 @@ class Gmail:
             args = vars()
             if _check_if_sent_similar_message(self, args, check_for_floods or self.flood_prevention):
                 return False
-        message = make_message(
+        message = utils.make_message(
             self.email_address, 
             self.sender_name, 
             to, 
@@ -191,12 +285,10 @@ class Gmail:
             return Label(label_data, self)
 
 
-
     def get_lables(self):
         labels_data = _get_labels(self.service)
         for label in labels_data['labels']:
             yield self.get_label_by_id(label['id'])
-
 
 
     def create_label(
@@ -208,7 +300,7 @@ class Gmail:
         text_color: str = None
         ):
 
-        body = make_label_dict(name= name, message_list_visibility= message_list_visibility, label_list_visibility= label_list_visibility, 
+        body = utils.make_label_dict(name= name, message_list_visibility= message_list_visibility, label_list_visibility= label_list_visibility, 
             background_color= background_color, text_color= text_color
             )
 
@@ -264,36 +356,20 @@ def _get_message_full_data(service, message_id):
     full_data = service.message_service.get(userId = "me", id= message_id).execute()
     return full_data
 
-def _get_history_data(service, start_history_id: int, history_types: list, label_ids: list = None):
-    perams = {
+
+def _get_history_data(service, start_history_id: int, history_types: list = None, label_ids: list = None):
+    params = {
         'userId': 'me',
         'startHistoryId': start_history_id,
         'historyTypes': history_types
     }
-    data = service.history_service.list(**perams).execute()
-    results = {}
-    results['history_id'] = data['historyId']
-    histories = data.get("history")
-    if histories:
-        for history in histories:
-            del history['messages']
-            del history['id']
-            for returned_type in history:
-                if not returned_type in results:
-                    results[returned_type] = []
-                for message in history[returned_type]:
-                    message = message['message']
-                    if label_ids:
-                        message_labels = message.get('labelIds', [])
-                        if any(label_id in message_labels for label_id in label_ids):
-                            results[returned_type].append(message['id'])
-    return results
+    data = service.history_service.list(**params).execute()
+    return data
 
 
 def _get_labels(service):
     data = service.labels_service.list(userId= 'me').execute()
     return data
-
 
 
 def _get_label_raw_data(service, label_id: str):
@@ -314,7 +390,7 @@ def _check_if_sent_similar_message(mailbox, message, flood_prevention):
     for similarity in flood_prevention.similarities:
         value = message[similarity]
         kwargs[similarity] = value
-    query = gmail_query_maker(**kwargs)
+    query = utils.gmail_query_maker(**kwargs)
     messages = _get_messages(mailbox.service, None, ['SENT'], query, False)[0]
     if type(flood_prevention.after_date) is datetime:
         final_messages = []

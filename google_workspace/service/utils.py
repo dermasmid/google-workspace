@@ -2,8 +2,11 @@ import os
 import json
 from googleapiclient._helpers import positional
 from googleapiclient import discovery
+from httplib2.error import ServerNotFoundError
 import six
 from urllib.parse import urljoin, urlparse, parse_qs
+import google_auth_httplib2
+from httplib2 import Http
 from googleapiclient.schema import Schemas
 from googleapiclient import _auth
 from googleapiclient.model import JsonModel
@@ -212,11 +215,13 @@ def alt_build(func):
     return inner
 
 
-errors = (BrokenPipeError, timeout, HttpError, ConnectionResetError)
+errors = (BrokenPipeError, timeout, HttpError, ConnectionResetError, ServerNotFoundError)
 
 
-def _error_handling_decorator(execute_fn):
+def _error_handling_decorator(execute_fn, creds):
     def execute(*args, **kwargs):
+        if creds:
+            args[0].http = google_auth_httplib2.AuthorizedHttp(creds, http=Http())
         x = 0
         while True:
             try:
@@ -227,7 +232,9 @@ def _error_handling_decorator(execute_fn):
                 error_str = str(e)
                 trace = traceback.format_exc()
                 with open('api_errors.txt', 'a') as f:
-                    f.write(f'{datetime.now()}:\n{trace}file: {__main__.__file__}\n')
+                    f.write(f'{datetime.now()}:\n{trace}')
+                    if hasattr(__main__, '__file__'):
+                        f.write(f'file: {__main__.__file__}\n')
                     if any(isinstance(e, error) for error in errors):
                         if not isinstance(e, HttpError):
                             f.write('handled: True\n\n')
@@ -247,16 +254,16 @@ def _error_handling_decorator(execute_fn):
                     else:
                         f.write('handled: False\n\n')
                         raise e
-                print(f'Sleeping for 30 secs, time: {x}')
-                sleep(30)
+                print(f'Sleeping for 10 secs, time: {x}')
+                sleep(10)
 
                 if x == 5:
                     raise e
     return execute
 
 
-def _add_error_handler_for_api_client():
-    HttpRequest.execute = _error_handling_decorator(HttpRequest.execute)
+def _add_error_handler_for_api_client(creds = None):
+    HttpRequest.execute = _error_handling_decorator(HttpRequest.execute, creds)
 
 
 class ServerHandler(wsgiref.simple_server.WSGIRequestHandler):
