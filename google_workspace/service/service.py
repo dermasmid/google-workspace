@@ -77,7 +77,16 @@ class GoogleService(Resource):
         return self
 
 
-    def url_oauth(self, server_host: str, server_port: int = None, success_message: str = 'success', keyfile: str = None, certfile: str = None) -> str:
+    def url_oauth(
+        self,
+        server_host: str,
+        server_port: int = None,
+        success_message: str = 'success',
+        keyfile: str = None,
+        certfile: str = None,
+        block = False
+        ) -> str:
+
         if self.is_authenticated:
             return
         use_ssl = keyfile and certfile
@@ -88,7 +97,13 @@ class GoogleService(Resource):
         oauthsever = utils.OauthServer(server_port, success_message, keyfile, certfile, self.fetch_token)
         thread = threading.Thread(target=oauthsever.start)
         thread.start()
-        return self.auth_url
+        if not block:
+            # TODO: We might want to add a callback for when
+            # auth is done
+            return self.auth_url
+        else:
+            print(self.auth_url)
+            thread.join()
 
 
     def code_oauth(self):
