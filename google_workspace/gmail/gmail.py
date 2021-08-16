@@ -217,9 +217,11 @@ class Gmail:
         subject_is: str = None,
         subject_has: str = None
         ):
+
         @functools.wraps(func)
         def decorator(func):
             self.add_handler(MessageAddedHandler(func, labels, from_is, subject_is, subject_has))
+            return func
 
         if func:
             return decorator(func)
