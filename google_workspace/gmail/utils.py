@@ -141,7 +141,10 @@ def make_message(
         message["In-Reply-To"] = in_reply_to
 
 
-    if text:
+    if not text and html: # User did not pass text, We will be taking it from the html
+        text = get_html_text(html)
+
+    if text is not None:
         text_message = MIMEMultipart("alternative")
         text_message.attach(MIMEText(text, "plain"))
         message.attach(text_message)
