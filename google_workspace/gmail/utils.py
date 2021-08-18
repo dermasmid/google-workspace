@@ -260,33 +260,33 @@ def gmail_query_maker(
     before: date = None,
     label_name: str = None
     ):
-    query = ""
+    querys = []
 
     if not seen is None:
         if seen:
-            query += "is:read"
+            querys.append('is:read')
         else:
-            query += "is:unread"
+            querys.append('is:unread')
     
     if after:
-        query += f'after:{after.strftime("%Y/%m/%d")}'
+        querys.append(f'after:{after.strftime("%Y/%m/%d")}')
 
     if before:
-        query += f'before:{before.strftime("%Y/%m/%d")}'
+        querys.append(f'before:{before.strftime("%Y/%m/%d")}')
 
     if from_:
-        query += f"from:({from_})"
+        querys.append(f'from:({from_})')
     
     if to:
-        query += f'to:({",".join(to) if isinstance(to, list) else to})'
+        querys.append(f'to:({",".join(to) if isinstance(to, list) else to})')
 
     if subject:
-        query += f"subject:({subject})"
+        querys.append(f'subject:({subject})')
 
     if label_name:
-        query += f"label:{get_label_id(label_name)}"
+        querys.append(f'label:{get_label_id(label_name)}')
 
-    return query
+    return ' '.join(querys)
 
 
 def format_update(raw_update):
