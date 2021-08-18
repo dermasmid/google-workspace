@@ -137,6 +137,7 @@ class Message:
         
 
     def forward(self, to: list or str):
+        # TODO: check for user lang and change template accordingly.
         new_message = copy(self)
         if new_message.text:
             new_message.text = f'Original message from: {new_message.from_}\r\n' + new_message.text
