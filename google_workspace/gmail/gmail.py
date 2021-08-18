@@ -28,7 +28,8 @@ class Gmail:
         service: GoogleService or str = None,
         allow_modify: bool = True,
         workers: int = 4,
-        save_state: bool = False
+        save_state: bool = False,
+        update_interval: int = 1
         ):
         if isinstance(service, GoogleService):
             self.service = service
@@ -43,6 +44,7 @@ class Gmail:
         self.prevent_flood = False
         self.workers = workers
         self.save_state = save_state
+        self.update_interval = update_interval
         self.handlers = {}
         self.updates_queue = Queue()
         self.stop_request = Event()
@@ -164,7 +166,7 @@ class Gmail:
                         self.updates_queue.put(utils.format_update(history))
                 if self.stop_request.is_set():
                     break
-                time.sleep(0.5)
+                time.sleep(self.update_interval)
             except Exception as e:
                 self._handle_stop(history_id)
                 raise e
@@ -352,11 +354,6 @@ def _get_messages(service, next_page_token, label_ids, query, include_spam_and_t
 def _get_message_raw_data(service, message_id):
     raw_message = service.message_service.get(userId = "me", id= message_id, format= "raw").execute()
     return raw_message
-
-
-def _get_message_full_data(service, message_id):
-    full_data = service.message_service.get(userId = "me", id= message_id).execute()
-    return full_data
 
 
 def _get_history_data(service, start_history_id: int, history_types: list = None, label_ids: list = None):
