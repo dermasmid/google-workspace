@@ -32,7 +32,7 @@ class GoogleService(Resource):
         self.api = api
         self.pickle_file = f"{self.session}.pickle"
         self.is_authenticated = os.path.exists(self.pickle_file)
-        utils._add_error_handler_for_api_client()
+        utils.configure_error_handling()
         if service:
             if isinstance(service, Resource):
                 self._add_service_methods(service)
@@ -145,7 +145,7 @@ class GoogleService(Resource):
 
     def make_thread_safe(self):
         creds = self._http.credentials
-        utils._add_error_handler_for_api_client(creds)
+        utils.configure_error_handling(creds)
 
 
     def save_state(self, history_id):

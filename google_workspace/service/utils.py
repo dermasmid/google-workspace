@@ -16,6 +16,7 @@ from google.auth.transport import mtls
 from googleapiclient.http import HttpMock, HttpMockSequence, build_http, HttpRequest
 import google
 from time import sleep
+import trython
 import traceback
 import logging
 from socket import timeout
@@ -215,55 +216,33 @@ def alt_build(func):
     return inner
 
 
-errors = (BrokenPipeError, timeout, HttpError, ConnectionResetError, ServerNotFoundError)
+def exception_callback(error, _):
+    if isinstance(error, HttpError):
+        if not any(error_type in str(error) for error_type in (
+            'The service is currently unavailable', 
+            'Bad Gateway', 
+            'Internal error encountered',
+            'Unknown Error'
+            )):
+            raise error
 
 
-def _error_handling_decorator(execute_fn, creds):
-    def execute(*args, **kwargs):
+def configure_error_handling(creds = None):
+    error_handled_execute = trython.wrap(
+        HttpRequest.execute,
+        time_to_sleep= 10,
+        errors_to_catch= (BrokenPipeError, timeout, HttpError, ConnectionResetError, ServerNotFoundError),
+        on_exception_callback= exception_callback
+        )
+    
+    def custom_execute(*args, **kwargs):
         if creds:
             args[0].http = google_auth_httplib2.AuthorizedHttp(creds, http=Http())
-        x = 0
-        while True:
-            try:
-                data = execute_fn(*args, **kwargs)
-                return data
-            except Exception as e:
-                x += 1
-                error_str = str(e)
-                trace = traceback.format_exc()
-                with open('api_errors.txt', 'a') as f:
-                    f.write(f'{datetime.now()}:\n{trace}')
-                    if hasattr(__main__, '__file__'):
-                        f.write(f'file: {__main__.__file__}\n')
-                    if any(isinstance(e, error) for error in errors):
-                        if not isinstance(e, HttpError):
-                            f.write('handled: True\n\n')
-                            pass
-                        else:
-                            if any(error_type in error_str for error_type in (
-                                'The service is currently unavailable', 
-                                'Bad Gateway', 
-                                'Internal error encountered',
-                                'Unknown Error'
-                                )):
-                                f.write('handled: True\n\n')
-                                pass
-                            else:
-                                f.write('handled: False\n\n')
-                                raise e
-                    else:
-                        f.write('handled: False\n\n')
-                        raise e
-                print(f'Sleeping for 10 secs, time: {x}')
-                sleep(10)
 
-                if x == 5:
-                    raise e
-    return execute
+        data = error_handled_execute(*args, **kwargs)
+        return data
 
-
-def _add_error_handler_for_api_client(creds = None):
-    HttpRequest.execute = _error_handling_decorator(HttpRequest.execute, creds)
+    HttpRequest.execute = custom_execute
 
 
 class ServerHandler(wsgiref.simple_server.WSGIRequestHandler):
