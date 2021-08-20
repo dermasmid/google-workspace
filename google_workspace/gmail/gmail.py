@@ -315,6 +315,7 @@ class Gmail:
     def get_filters(self):
         return self.service.settings_service.filters().list(userId= 'me').execute()
 
+
     def set_flood_prevention(self, similarities: list, after_date: date or datetime or int, number_of_messages: int = 1):
         self.flood_prevention = FloodPrevention(similarities, after_date, number_of_messages)
 
@@ -337,6 +338,98 @@ class Gmail:
 
     def mark_message_as_unread(self, message_id: str):
         return self.service.message_service.modify(userId= 'me', id= message_id, body= {'addLabelIds': ['UNREAD']}).execute()
+
+
+    def get_auto_forwarding_settings(self) -> dict:
+        return self.service.users().settings().getAutoForwarding(userId= 'me').execute()
+
+
+    def get_imap_settings(self) -> dict:
+        return self.service.users().settings().getImap(userId= 'me').execute()
+
+
+    def get_language_settings(self) -> dict:
+        return self.service.users().settings().getLanguage(userId= 'me').execute()
+
+
+    def get_pop_settings(self) -> dict:
+        return self.service.users().settings().getPop(userId= 'me').execute()
+
+
+    def get_vacation_settings(self) -> dict:
+        return self.service.users().settings().getVacation(userId= 'me').execute()
+
+
+    def update_auto_forwarding_settings(
+        self,
+        enabled: bool,
+        email_address: str,
+        disposition: str
+        ) -> dict:
+
+        auto_forwarding = {
+            'enabled': enabled,
+            'emailAddress': email_address,
+            'disposition': disposition
+        }
+        return self.service.users().settings().updateAutoForwarding(userId= 'me', body= auto_forwarding).execute()
+
+
+    def update_imap_settings(
+        self,
+        enabled: bool,
+        auto_expunge: bool,
+        expunge_behavior: str,
+        max_folder_size: int
+        ) -> dict:
+
+        imap_settings = {
+            'enabled': enabled,
+            'autoExpunge': auto_expunge,
+            'expungeBehavior': expunge_behavior,
+            'maxFolderSize': max_folder_size
+        }
+        return self.service.users().settings().updateImap(userId= 'me', body= imap_settings).execute()
+
+
+    def update_language_settings(self, display_language: str) -> dict:
+        language_settings = {
+            'displayLanguage': display_language
+        }
+        return self.service.users().settings().updateLanguage(userId= 'me', body= language_settings).execute()
+
+
+    def update_pop_settings(self, access_window: str, disposition: str) -> dict:
+        pop_settings = {
+            'accessWindow': access_window,
+            'disposition': disposition
+        }
+        return self.service.users().settings().updateLanguage(userId= 'me', body= pop_settings).execute()
+
+
+    def update_vacation_settings(
+        self,
+        enable_auto_reply: bool,
+        response_subject: str,
+        response_body_plain_text: str,
+        response_body_html: str,
+        restrict_to_contacts: bool,
+        restrict_to_domain: bool,
+        start_time: str, # TODO: take date object
+        end_time: str
+        ) -> dict:
+
+        vacation_settings = {
+            'enableAutoReply': enable_auto_reply,
+            'responseSubject': response_subject,
+            'responseBodyPlainText': response_body_plain_text,
+            'responseBodyHtml': response_body_html,
+            'restrictToContacts': restrict_to_contacts,
+            'restrictToDomain': restrict_to_domain,
+            'startTime': start_time,
+            'endTime': end_time
+        }
+        return self.service.users().settings().updateVacation(userId= 'me', body= vacation_settings).execute()
 
 
 
