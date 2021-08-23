@@ -7,6 +7,7 @@ from email.mime.base import MIMEBase
 from email.utils import getaddresses
 from email.header import decode_header
 from mimetypes import guess_type
+import textwrap
 import magic
 import os
 from datetime import datetime, date
@@ -296,3 +297,26 @@ def format_update(raw_update):
     update_key = keys[0]
     update_type = handler_update_key_to_type_map[update_key]
     return {'type': update_type, 'updates': raw_update[update_key], 'history_id': raw_update['id']}
+
+
+def create_forwarded_message(message):
+    formated_to = ', '.join(message.to)
+    formated_date = message.date.strftime('%a, %b %d, %Y at %I:%M %p')
+    text_email = '''
+
+    ---------- Forwarded message ---------
+    From: {from_name} <{from_email}>
+    Date: {date}
+    Subject: {subject}
+    To: <{to_email}>
+
+    {body}
+    '''.format(from_email= message.from_, from_name= message.from_name, date= formated_date, subject= message.subject, to_email= formated_to, body= message.text)
+
+    html_email = """<div dir="ltr"><br><br><div class="gmail_quote"><div dir="ltr" class="gmail_attr">---------- Forwarded message ---------<br>
+    From: <strong class="gmail_sendername" dir="auto">{from_name}</strong> <span dir="auto">&lt;<a href="mailto:{from_email}">{from_email}</a>&gt;</span><br>
+    Date: {date}<br>Subject: {subject}<br>To: &lt;<a href="mailto:{to_email}" target="_blank">{to_email}</a>&gt;<br></div><br><br>{body}</div></div>
+    """.format(from_email= message.from_, from_name= message.from_name, 
+            to_email= formated_to, subject= message.subject, date= formated_date, body= message.html)
+
+    return textwrap.dedent(text_email), textwrap.dedent(html_email.replace('\n', ''))

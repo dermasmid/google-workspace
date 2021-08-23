@@ -1,5 +1,6 @@
 import email
 import base64
+from . import utils
 from .utils import get_emails_address, get_full_address_data, parse_date, decode, get_label_id, get_html_text, is_english_chars, encode_if_not_english
 import chardet
 from copy import copy
@@ -137,14 +138,13 @@ class Message:
         
 
     def forward(self, to: list or str):
-        # TODO: check for user lang and change template accordingly.
+        text_email, html_email = utils.create_forwarded_message(self)
         new_message = copy(self)
-        if new_message.text:
-            new_message.text = f'Original message from: {new_message.from_}\r\n' + new_message.text
-        if new_message.html_text:
-            new_message.html = f'<h3>Original message from: {new_message.from_}</h3>' + new_message.html
+        new_message.text = text_email
+        new_message.html = html_email
         new_message.subject = f'Fwd: {new_message.subject}'
         self.mailbox.send_message_from_message_obj(new_message, to)
+
 
     @property
     def labels(self):
