@@ -214,7 +214,7 @@ class Gmail:
     def on_message(
         self,
         func: callable = None,
-        labels: Union[list, str] = None,
+        labels: Union[list, str] = 'inbox',
         from_is: str = None,
         subject_is: str = None,
         subject_has: str = None
