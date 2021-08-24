@@ -236,7 +236,10 @@ def configure_error_handling(creds = None):
         )
     
     def custom_execute(*args, **kwargs):
-        if creds:
+        if kwargs.get('service'): # temp fix for running diffrent services in same process
+            args[0].http = google_auth_httplib2.AuthorizedHttp(kwargs['service']._http.credentials)
+            del kwargs['service']
+        elif creds:
             args[0].http = google_auth_httplib2.AuthorizedHttp(creds, http=Http())
 
         data = error_handled_execute(*args, **kwargs)
