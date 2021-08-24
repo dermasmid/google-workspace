@@ -144,8 +144,7 @@ class GoogleService(Resource):
 
 
     def make_thread_safe(self):
-        creds = self._http.credentials
-        utils.configure_error_handling(creds)
+        self._http.credentials.threading = True
 
 
     def save_state(self, history_id):

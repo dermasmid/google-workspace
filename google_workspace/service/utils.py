@@ -15,12 +15,9 @@ from googleapiclient.errors import InvalidJsonError, HttpError
 from google.auth.transport import mtls
 from googleapiclient.http import HttpMock, HttpMockSequence, build_http, HttpRequest
 import google
-from time import sleep
 import trython
-import traceback
 import logging
 from socket import timeout
-from datetime import datetime
 import wsgiref
 from collections.abc import Mapping
 import socket
@@ -227,7 +224,7 @@ def exception_callback(error, _):
             raise error
 
 
-def configure_error_handling(creds = None):
+def configure_error_handling():
     error_handled_execute = trython.wrap(
         HttpRequest.execute,
         time_to_sleep= 10,
@@ -235,14 +232,11 @@ def configure_error_handling(creds = None):
         on_exception_callback= exception_callback
         )
     
-    def custom_execute(*args, **kwargs):
-        if kwargs.get('service'): # temp fix for running diffrent services in same process
-            args[0].http = google_auth_httplib2.AuthorizedHttp(kwargs['service']._http.credentials)
-            del kwargs['service']
-        elif creds:
-            args[0].http = google_auth_httplib2.AuthorizedHttp(creds, http=Http())
+    def custom_execute(self, *args, **kwargs):
+        if getattr(self.http.credentials, 'threading', False):
+            self.http = google_auth_httplib2.AuthorizedHttp(self.http.credentials, http=Http())
 
-        data = error_handled_execute(*args, **kwargs)
+        data = error_handled_execute(self, *args, **kwargs)
         return data
 
     HttpRequest.execute = custom_execute
