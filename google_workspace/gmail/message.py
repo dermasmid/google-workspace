@@ -126,11 +126,12 @@ class Message:
             references = self.references + " " + self.message_id
         else:
             references = self.message_id
+        text_email, html_email = utils.create_replied_message(self, text, html)
         data = self.mailbox.send_message(
             to= self.raw_from,
             subject= f"Re: {self.subject}",
-            text= text,
-            html= html,
+            text= text_email,
+            html= html_email,
             attachments= attachments,
             references= references,
             in_reply_to= self.message_id,

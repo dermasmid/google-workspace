@@ -311,7 +311,8 @@ def create_forwarded_message(message):
     To: <{to_email}>
 
     {body}
-    '''.format(from_email= message.from_, from_name= message.from_name, date= formated_date, subject= message.subject, to_email= formated_to, body= message.text)
+    '''.format(from_email= message.from_, from_name= message.from_name,
+            date= formated_date, subject= message.subject, to_email= formated_to, body= message.text)
 
     html_email = """<div dir="ltr"><br><br><div class="gmail_quote"><div dir="ltr" class="gmail_attr">---------- Forwarded message ---------<br>
     From: <strong class="gmail_sendername" dir="auto">{from_name}</strong> <span dir="auto">&lt;<a href="mailto:{from_email}">{from_email}</a>&gt;</span><br>
@@ -320,3 +321,34 @@ def create_forwarded_message(message):
             to_email= formated_to, subject= message.subject, date= formated_date, body= message.html)
 
     return textwrap.dedent(text_email), textwrap.dedent(html_email.replace('\n', ''))
+
+
+def create_replied_message(message, text_body: str, html_body: str):
+    formated_date = message.date.strftime('%a, %b %d, %Y at %I:%M %p')
+    if text_body:
+        text_email = """
+        {text_body}
+
+        On {date} {from_name} <{from_email}>
+        wrote:
+
+        {body}
+        """.format(text_body= text_body, date= formated_date, from_name= message.from_name,
+            from_email= message.from_, body= '\n'.join('> ' + line for line in message.text.split('\n')))
+        text_email = '\n'.join(map(lambda line: line.lstrip(), text_email.split('\n')))
+    else:
+        text_email = None
+    
+    if html_body:
+        html_email = """
+        {html_body}<br><div class="gmail_quote"><div dir="ltr" class="gmail_attr">On {date} {from_name} &lt;<a
+        href="{from_email}">{from_email}</a>&gt; wrote:<br></div><blockquote class="gmail_quote"
+        style="margin:0px 0px 0px 0.8ex;border-left:1px solid rgb(204,204,204);padding-left:1ex"><u></u>
+        {body}</blockquote></div>
+        """.format(html_body= html_body, date= formated_date, from_name= message.from_name,
+            from_email= message.from_, body= message.html)
+        html_email = textwrap.dedent(html_email.replace('\n', ''))
+    else:
+        html_email = None
+
+    return text_email, html_email
