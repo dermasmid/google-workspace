@@ -14,6 +14,7 @@ from .scopes import ReadonlyGmailScope
 from .flood_prevention import FloodPrevention
 import time
 from datetime import datetime, date
+from googleapiclient.errors import HttpError
 
 
 
@@ -142,7 +143,15 @@ class Gmail:
                 break
             update_type = full_update['type']
             for update in full_update['updates']:
-                message = self.get_message_by_id(update['message']['id'])
+                try:
+                    message = self.get_message_by_id(update['message']['id'])
+                except HttpError as e:
+                    if 'Requested entity was not found.' in str(e):
+                        # We got an update for a draft, but was deleted (sent out) or updated since. 
+                        continue
+                    else:
+                        raise e
+
                 for handler in self.handlers[update_type]:
                     if handler.check(message):
                         handler.callback(message)
