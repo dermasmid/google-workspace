@@ -7,6 +7,7 @@ import functools
 import signal
 from ..service import GoogleService
 from . import utils
+from . import helper
 from .message import Message
 from .handlers import MessageAddedHandler
 from .label import Label, LabelShow, MessageShow
@@ -15,7 +16,6 @@ from .flood_prevention import FloodPrevention
 import time
 from datetime import datetime, date
 from googleapiclient.errors import HttpError
-
 
 
 
@@ -109,7 +109,7 @@ class Gmail:
 
 
         next_page_token = None
-        messages, next_page_token = _get_messages(self.service, next_page_token, label_ids, query, include_spam_and_trash)
+        messages, next_page_token = helper.get_messages(self.service, next_page_token, label_ids, query, include_spam_and_trash)
         
         while True:
             try:
@@ -118,17 +118,17 @@ class Gmail:
             except StopIteration:
                 if not next_page_token:
                     break
-                messages, next_page_token = _get_messages(self.service, next_page_token, label_ids, query, include_spam_and_trash)
+                messages, next_page_token = helper.get_messages(self.service, next_page_token, label_ids, query, include_spam_and_trash)
                 continue
 
             else:
-                yield Message(_get_message_raw_data(self.service, message_id), self)
+                yield Message(helper.get_message_raw_data(self.service, message_id), self)
 
 
 
 
     def get_message_by_id(self, message_id: str):
-        raw_message = _get_message_raw_data(self.service, message_id)
+        raw_message = helper.get_message_raw_data(self.service, message_id)
         return Message(raw_message, self)
 
 
@@ -168,7 +168,7 @@ class Gmail:
         # If there's no handler's - quit.
         while history_types:
             try:
-                data = _get_history_data(self.service, history_id, history_types)
+                data = helper.get_history_data(self.service, history_id, history_types)
                 history_id = data['historyId']
                 for history in data.get('history', []):
                     if len(history) == 3:
@@ -255,7 +255,7 @@ class Gmail:
         ):
         if check_for_floods or self.prevent_flood:
             args = vars()
-            if _check_if_sent_similar_message(self, args, check_for_floods or self.flood_prevention):
+            if helper.check_if_sent_similar_message(self, args, check_for_floods or self.flood_prevention):
                 return False
         message = utils.make_message(
             self.email_address, 
@@ -294,12 +294,12 @@ class Gmail:
 
 
     def get_label_by_id(self, label_id: str):
-            label_data = _get_label_raw_data(self.service, label_id)
+            label_data = helper.get_label_raw_data(self.service, label_id)
             return Label(label_data, self)
 
 
     def get_lables(self):
-        labels_data = _get_labels(self.service)
+        labels_data = helper.get_labels(self.service)
         for label in labels_data['labels']:
             yield self.get_label_by_id(label['id'])
 
@@ -439,67 +439,3 @@ class Gmail:
             'endTime': end_time
         }
         return self.service.users().settings().updateVacation(userId= 'me', body= vacation_settings).execute()
-
-
-
-# Helper functions
-def _get_messages(service, next_page_token, label_ids, query, include_spam_and_trash):
-    kwargs = {'userId': 'me', 'pageToken': next_page_token, 'q': query, 'includeSpamTrash': include_spam_and_trash}
-    if label_ids:
-        kwargs['labelIds'] = label_ids
-    data = service.message_service.list(**kwargs).execute()
-    messages = iter(data.get("messages", []))
-    next_page_token = data.get("nextPageToken", None)
-    return messages, next_page_token
-
-
-def _get_message_raw_data(service, message_id):
-    raw_message = service.message_service.get(userId = "me", id= message_id, format= "raw").execute()
-    return raw_message
-
-
-def _get_history_data(service, start_history_id: int, history_types: list = None, label_id: str = None):
-    params = {
-        'userId': 'me',
-        'startHistoryId': start_history_id,
-        'historyTypes': history_types,
-        'labelId': label_id
-    }
-    data = service.history_service.list(**params).execute()
-    return data
-
-
-def _get_labels(service):
-    data = service.labels_service.list(userId= 'me').execute()
-    return data
-
-
-def _get_label_raw_data(service, label_id: str):
-    data = service.labels_service.get(userId= 'me', id= label_id).execute()
-    return data
-
-
-def _check_if_sent_similar_message(mailbox, message, flood_prevention):
-    kwargs = {}
-    # if raw_from is passed we have to remove the name first becuz the api wont return anything
-    if 'to' in flood_prevention.similarities:
-        to = message['to']
-        if '<' in to:
-            start = to.find('<') + 1
-            end = to.find('>')
-            message['to'] = to[start:end]
-    kwargs['after'] = flood_prevention.after_date
-    for similarity in flood_prevention.similarities:
-        value = message[similarity]
-        kwargs[similarity] = value
-    query = utils.gmail_query_maker(**kwargs)
-    messages = _get_messages(mailbox.service, None, ['SENT'], query, False)[0]
-    if type(flood_prevention.after_date) is datetime:
-        final_messages = []
-        for message in messages:
-            message_date = Message(_get_message_raw_data(mailbox.service, message['id']), mailbox).date
-            if flood_prevention.after_date < message_date:
-                final_messages.append(message)
-        messages = final_messages
-    response = len(list(messages)) >= flood_prevention.number_of_messages
-    return response
