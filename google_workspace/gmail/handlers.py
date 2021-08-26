@@ -1,4 +1,3 @@
-from re import S
 from typing import Union
 from . import utils
 
