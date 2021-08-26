@@ -1,7 +1,6 @@
 import email
 import base64
 from . import utils
-from .utils import get_emails_address, get_full_address_data, parse_date, decode, get_label_id, get_html_text, is_english_chars, encode_if_not_english
 import chardet
 from copy import copy
 
@@ -28,29 +27,29 @@ class Message:
         self.references = self.mail_obj['References']
         self.is_reply = bool(self.in_reply_to)
         self.message_id = self.mail_obj["Message-Id"]
-        self.subject = decode(self.mail_obj["Subject"]) or ''
-        self.to = get_emails_address(self.mail_obj["To"]) or []
-        self.cc = get_emails_address(self.mail_obj["Cc"]) or []
-        self.bcc = get_emails_address(self.mail_obj["Bcc"]) or []
+        self.subject = utils.decode(self.mail_obj["Subject"]) or ''
+        self.to = utils.get_emails_address(self.mail_obj["To"]) or []
+        self.cc = utils.get_emails_address(self.mail_obj["Cc"]) or []
+        self.bcc = utils.get_emails_address(self.mail_obj["Bcc"]) or []
         self.raw_from = self.mail_obj["From"]
         try:
-            self.from_ = get_emails_address(self.raw_from)[0]
-            self.raw_from_name = get_full_address_data(self.raw_from)[0]["name"] or ''
+            self.from_ = utils.get_emails_address(self.raw_from)[0]
+            self.raw_from_name = utils.get_full_address_data(self.raw_from)[0]["name"] or ''
         except IndexError: # edge case where raw_from is None
             self.from_ = ''
             self.raw_from_name = ''
-        if not is_english_chars(self.raw_from_name):
-            self.raw_from_name = encode_if_not_english(self.raw_from_name)
+        if not utils.is_english_chars(self.raw_from_name):
+            self.raw_from_name = utils.encode_if_not_english(self.raw_from_name)
             self.raw_from = f'{self.raw_from_name} <{self.from_}>'
-        self.from_name = decode(self.raw_from_name)
+        self.from_name = utils.decode(self.raw_from_name)
         self.raw_date = self.mail_obj["Date"]
-        self.date = parse_date(self.raw_date)
+        self.date = utils.parse_date(self.raw_date)
         self.is_bulk = self.mail_obj['Precedence'] == 'bulk'
         self.text = ''
         self.html = ''
         self.attachments = []
         self._get_parts()
-        self.html_text = get_html_text(self.html)
+        self.html_text = utils.get_html_text(self.html)
         self.has_attachments = any(not attachment.is_inline for attachment in self.attachments) # this is if you what to know if the message has a real attachment
   
 
@@ -89,11 +88,11 @@ class Message:
 
 
     def add_label(self, label_id: str):
-        return self.mailbox.service.message_service.modify(userId= 'me', id= self.gmail_id, body= {'addLabelIds': [get_label_id(label_id)]}).execute()
+        return self.mailbox.service.message_service.modify(userId= 'me', id= self.gmail_id, body= {'addLabelIds': [utils.get_label_id(label_id)]}).execute()
 
 
     def remove_label(self, label_id: str):
-        return self.mailbox.service.message_service.modify(userId= 'me', id= self.gmail_id, body= {'removeLabelIds': [get_label_id(label_id)]}).execute()
+        return self.mailbox.service.message_service.modify(userId= 'me', id= self.gmail_id, body= {'removeLabelIds': [utils.get_label_id(label_id)]}).execute()
 
 
     def mark_read(self):
@@ -169,7 +168,7 @@ class Attachment:
 
     @property
     def filename(self):
-        return decode(self._part.get_filename()) or ''
+        return utils.decode(self._part.get_filename()) or ''
 
 
     @property
