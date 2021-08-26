@@ -458,11 +458,12 @@ def _get_message_raw_data(service, message_id):
     return raw_message
 
 
-def _get_history_data(service, start_history_id: int, history_types: list = None, label_ids: list = None):
+def _get_history_data(service, start_history_id: int, history_types: list = None, label_id: str = None):
     params = {
         'userId': 'me',
         'startHistoryId': start_history_id,
-        'historyTypes': history_types
+        'historyTypes': history_types,
+        'labelId': label_id
     }
     data = service.history_service.list(**params).execute()
     return data
