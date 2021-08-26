@@ -14,7 +14,7 @@ setup(
     name = 'google-workspace',
     version = __version__,
     packages = find_packages(),
-    url = 'https://github.com/dermasmid/python-google-workspace',
+    url = 'https://github.com/dermasmid/google-workspace',
     license = 'MIT',
     long_description = readme,
     long_description_content_type = 'text/markdown',
