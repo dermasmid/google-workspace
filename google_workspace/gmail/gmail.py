@@ -122,14 +122,14 @@ class Gmail:
                 continue
 
             else:
-                yield Message(helper.get_message_raw_data(self.service, message_id), self)
+                yield Message(self, helper.get_message_raw_data(self.service, message_id, True), True)
 
 
 
 
     def get_message_by_id(self, message_id: str):
-        raw_message = helper.get_message_raw_data(self.service, message_id)
-        return Message(raw_message, self)
+        raw_message = helper.get_message_raw_data(self.service, message_id, True)
+        return Message(self, raw_message, True)
 
 
     def add_handler(self, handler):

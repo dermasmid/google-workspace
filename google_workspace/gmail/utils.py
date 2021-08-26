@@ -7,6 +7,9 @@ from email.mime.base import MIMEBase
 from email.utils import getaddresses
 from email.header import decode_header
 from mimetypes import guess_type
+import email
+import base64
+import chardet
 import textwrap
 import magic
 import os
@@ -107,6 +110,21 @@ def decode(header: str):
         data = header
     return data
 
+
+def get_email_object(message_data: str):
+    b64decoded = base64.urlsafe_b64decode(message_data)
+    decoded_email = None
+    try:
+        decoded_email = b64decoded.decode()
+    except UnicodeDecodeError: # i can do this every time but the detection takes 0.1 secs - which i think is long
+        encoding = chardet.detect(b64decoded)['encoding']
+        if encoding:
+            try:
+                decoded_email = b64decoded.decode(encoding)
+            except UnicodeDecodeError: # some weird edge cases
+                pass
+    email_object = email.message_from_string(decoded_email if decoded_email else '')
+    return email_object
 
 
 def make_message(

@@ -13,8 +13,8 @@ def get_messages(service, next_page_token, label_ids, query, include_spam_and_tr
     return messages, next_page_token
 
 
-def get_message_raw_data(service, message_id):
-    raw_message = service.message_service.get(userId = "me", id= message_id, format= "raw").execute()
+def get_message_raw_data(service, message_id: str, download_full: bool):
+    raw_message = service.message_service.get(userId = "me", id= message_id, format= 'raw' if download_full else 'minimal').execute()
     return raw_message
 
 
@@ -57,7 +57,7 @@ def check_if_sent_similar_message(mailbox, message, flood_prevention):
     if type(flood_prevention.after_date) is datetime:
         final_messages = []
         for message in messages:
-            message_date = msg.Message(get_message_raw_data(mailbox.service, message['id']), mailbox).date
+            message_date = msg.Message(mailbox, get_message_raw_data(mailbox.service, message['id'], True), True).date
             if flood_prevention.after_date < message_date:
                 final_messages.append(message)
         messages = final_messages

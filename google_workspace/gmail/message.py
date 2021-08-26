@@ -1,57 +1,15 @@
-import email
-import base64
-from . import utils
-import chardet
+from . import utils, gmail
 from copy import copy
+
+
 
 class Message:
 
 
-    def __init__(self, raw_message: str, mailbox):
-        self.gmail_id = raw_message["id"]
-        self.thread_id = raw_message["threadId"]
-        self.label_ids = raw_message["labelIds"]
+    def __init__(self, mailbox: "gmail.Gmail", message_data: str, is_full: bool):
         self.mailbox = mailbox
-        try:
-            self.mail_obj = email.message_from_string(base64.urlsafe_b64decode(raw_message["raw"]).decode())
-        except UnicodeDecodeError: # i can do this every time but the detection takes 0.1 secs - which i think is long
-            data = base64.urlsafe_b64decode(raw_message["raw"])
-            encoding = chardet.detect(data)['encoding']
-            try:
-                self.mail_obj = email.message_from_string(data.decode(encoding)) if encoding else email.message_from_string('')
-            except UnicodeDecodeError: # some weird edge cases
-                self.mail_obj = email.message_from_string('')
-        self.is_seen = not "UNREAD" in self.label_ids
-        self.is_chat_message = "CHAT" in self.label_ids
-        self.in_reply_to = self.mail_obj['In-Reply-To']
-        self.references = self.mail_obj['References']
-        self.is_reply = bool(self.in_reply_to)
-        self.message_id = self.mail_obj["Message-Id"]
-        self.subject = utils.decode(self.mail_obj["Subject"]) or ''
-        self.to = utils.get_emails_address(self.mail_obj["To"]) or []
-        self.cc = utils.get_emails_address(self.mail_obj["Cc"]) or []
-        self.bcc = utils.get_emails_address(self.mail_obj["Bcc"]) or []
-        self.raw_from = self.mail_obj["From"]
-        try:
-            self.from_ = utils.get_emails_address(self.raw_from)[0]
-            self.raw_from_name = utils.get_full_address_data(self.raw_from)[0]["name"] or ''
-        except IndexError: # edge case where raw_from is None
-            self.from_ = ''
-            self.raw_from_name = ''
-        if not utils.is_english_chars(self.raw_from_name):
-            self.raw_from_name = utils.encode_if_not_english(self.raw_from_name)
-            self.raw_from = f'{self.raw_from_name} <{self.from_}>'
-        self.from_name = utils.decode(self.raw_from_name)
-        self.raw_date = self.mail_obj["Date"]
-        self.date = utils.parse_date(self.raw_date)
-        self.is_bulk = self.mail_obj['Precedence'] == 'bulk'
-        self.text = ''
-        self.html = ''
-        self.attachments = []
-        self._get_parts()
-        self.html_text = utils.get_html_text(self.html)
-        self.has_attachments = any(not attachment.is_inline for attachment in self.attachments) # this is if you what to know if the message has a real attachment
-  
+        self.is_full = is_full
+        self.process_message(message_data)
 
 
     def __str__(self):
@@ -66,7 +24,7 @@ class Message:
 
     def _get_parts(self):
         text_parts = {"text/plain": "text", "text/html": "html"}
-        for part in self.mail_obj.walk():
+        for part in self.email_object.walk():
             if part.get_content_maintype() == "multipart":
                 continue
             mimetype = part.get_content_type()
@@ -155,8 +113,43 @@ class Message:
             yield self.mailbox.get_label_by_id(label)
 
 
-
-
+    def process_message(self, message_data: str):
+        self.message_data = message_data
+        self.gmail_id = message_data["id"]
+        self.thread_id = message_data["threadId"]
+        self.label_ids = message_data["labelIds"]
+        self.email_object = utils.get_email_object(message_data['raw'])
+        self.is_seen = not "UNREAD" in self.label_ids
+        self.is_chat_message = "CHAT" in self.label_ids
+        self.in_reply_to = self.email_object['In-Reply-To']
+        self.references = self.email_object['References']
+        self.is_reply = bool(self.in_reply_to)
+        self.message_id = self.email_object["Message-Id"]
+        self.subject = utils.decode(self.email_object["Subject"]) or ''
+        self.to = utils.get_emails_address(self.email_object["To"]) or []
+        self.cc = utils.get_emails_address(self.email_object["Cc"]) or []
+        self.bcc = utils.get_emails_address(self.email_object["Bcc"]) or []
+        self.raw_from = self.email_object["From"]
+        try:
+            self.from_ = utils.get_emails_address(self.raw_from)[0]
+            self.raw_from_name = utils.get_full_address_data(self.raw_from)[0]["name"] or ''
+        except IndexError: # edge case where raw_from is None
+            self.from_ = ''
+            self.raw_from_name = ''
+        if not utils.is_english_chars(self.raw_from_name):
+            self.raw_from_name = utils.encode_if_not_english(self.raw_from_name)
+            self.raw_from = f'{self.raw_from_name} <{self.from_}>'
+        self.from_name = utils.decode(self.raw_from_name)
+        self.raw_date = self.email_object["Date"]
+        self.date = utils.parse_date(self.raw_date)
+        self.is_bulk = self.email_object['Precedence'] == 'bulk'
+        self.text = ''
+        self.html = ''
+        self.attachments = []
+        self._get_parts()
+        self.html_text = utils.get_html_text(self.html)
+        self.has_attachments = any(not attachment.is_inline for attachment in self.attachments) # this is if you what to know if the message has a real attachment
+  
 
 class Attachment:
 
