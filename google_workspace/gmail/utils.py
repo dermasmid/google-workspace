@@ -5,11 +5,12 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email.mime.base import MIMEBase
 from email.utils import getaddresses
+from email.message import Message
 from email.header import decode_header
 from mimetypes import guess_type
+from typing import Union, Tuple
 import email
 import base64
-import chardet
 import textwrap
 import magic
 import os
@@ -47,7 +48,7 @@ HTMLParser.handle_starttag = _handle_starttag
 HTMLParser.handle_endtag = _handle_endtag
 
 
-def is_english_chars(string: str):
+def is_english_chars(string: str) -> str:
     try:
         string.encode('utf-8').decode('ascii')
         return True
@@ -55,14 +56,14 @@ def is_english_chars(string: str):
         return False
 
 
-def encode_if_not_english(string: str):
-    if not is_english_chars(string):
+def encode_if_not_english(string: Union[str, None]) -> Union[str, None]:
+    if string and not is_english_chars(string):
         b64_string = base64.b64encode(string.encode('utf-8')).decode('ascii')
         string = f"=?UTF-8?B?{b64_string}?="
     return string
 
 
-def get_emails_address(raw: list or bool):
+def get_email_addresses(raw: Union[list, None]) -> Union[list, None]:
     result = []
     if raw:
         raw = getaddresses([raw])
@@ -71,18 +72,26 @@ def get_emails_address(raw: list or bool):
     return result
 
 
-def get_full_address_data(raw: list or bool):
-    result = []
+def get_email_name(raw: Union[str, None]) -> Union[str, None]:
     if raw:
         raw = getaddresses([raw])
-        for name, email in raw:
-            result.append(
-                {
-                    "name": name,
-                    "email": email.lower().strip()
-                }
-            )
-    return result
+        for name, _ in raw:
+            return name
+    return raw
+
+
+def get_from_info(raw_from: Union[str, None]):
+    from_ = get_email_addresses(raw_from)
+    if from_:
+        from_ = from_[0]
+    else:
+        from_ = None
+    raw_from_name = encode_if_not_english(get_email_name(raw_from))
+    from_name = decode(raw_from_name)
+    # We fixing `raw_from` so it can be used in `to` field when sending message
+    # and `from_name` contains none ascii chars
+    raw_from = f'{raw_from_name} <{from_}>' if all((raw_from_name, from_)) else None
+    return raw_from, raw_from_name, from_, from_name
 
 
 def parse_date(date: str) -> datetime:
@@ -97,7 +106,7 @@ def parse_date(date: str) -> datetime:
 
 
 
-def decode(header: str):
+def decode(header: Union[str, None]) -> Union[str, None]:
     if not header is None:
         decode_data = decode_header(header)[0]
         data, encoding = decode_data
@@ -106,40 +115,28 @@ def decode(header: str):
                 return data.decode(encoding or 'utf-8', 'ignore')
             except LookupError:
                 return data.decode('utf-8', 'ignore')
-    else:
-        data = header
-    return data
+        return data
+    return header
 
 
-def get_email_object(message_data: str):
+def get_email_object(message_data: str) -> Message:
     b64decoded = base64.urlsafe_b64decode(message_data)
-    decoded_email = None
-    try:
-        decoded_email = b64decoded.decode()
-    except UnicodeDecodeError: # i can do this every time but the detection takes 0.1 secs - which i think is long
-        encoding = chardet.detect(b64decoded)['encoding']
-        if encoding:
-            try:
-                decoded_email = b64decoded.decode(encoding)
-            except UnicodeDecodeError: # some weird edge cases
-                pass
-    email_object = email.message_from_string(decoded_email if decoded_email else '')
-    return email_object
+    return email.message_from_bytes(b64decoded)
 
 
 def make_message(
     from_: str,
     sender_name: str = None,
-    to: list or str = None,
-    cc: list or str = None,
-    bcc: list or str = None,
+    to: Union[list, str] = None,
+    cc: Union[list, str] = None,
+    bcc: Union[list, str] = None,
     subject: str = "",
     text: str = None,
     html: str = None,
     attachments: list = [], # list of file paths or list of tuples with (data, filename) format or (filepath, filename to use)
     references: str = None, # For replying emails
     in_reply_to: str = None # Same
-    ):
+    ) -> bytes:
 
     message = MIMEMultipart("mixed")
     message["Subject"] = subject
@@ -278,7 +275,7 @@ def gmail_query_maker(
     after: date = None,
     before: date = None,
     label_name: str = None
-    ):
+    ) -> str:
     querys = []
 
     if not seen is None:
@@ -317,7 +314,7 @@ def format_update(raw_update):
     return {'type': update_type, 'updates': raw_update[update_key], 'history_id': raw_update['id']}
 
 
-def create_forwarded_message(message):
+def create_forwarded_message(message) -> Tuple[str, str]:
     formated_to = ', '.join(message.to)
     formated_date = message.date.strftime('%a, %b %d, %Y at %I:%M %p')
     text_email = '''
@@ -341,7 +338,7 @@ def create_forwarded_message(message):
     return textwrap.dedent(text_email), textwrap.dedent(html_email.replace('\n', ''))
 
 
-def create_replied_message(message, text_body: str, html_body: str):
+def create_replied_message(message, text_body: str, html_body: str) -> Tuple[str, str]:
     formated_date = message.date.strftime('%a, %b %d, %Y at %I:%M %p')
     if text_body:
         text_email = """
@@ -370,3 +367,7 @@ def create_replied_message(message, text_body: str, html_body: str):
         html_email = None
 
     return text_email, html_email
+
+
+def invert_message_headers(message_headers: list) -> dict:
+    return {header['name']: header['value'] for header in message_headers}

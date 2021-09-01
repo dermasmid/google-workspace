@@ -6,9 +6,8 @@ from copy import copy
 class Message:
 
 
-    def __init__(self, mailbox: "gmail.Gmail", message_data: str, is_full: bool):
+    def __init__(self, mailbox: "gmail.Gmail", message_data: dict):
         self.mailbox = mailbox
-        self.is_full = is_full
         self.process_message(message_data)
 
 
@@ -113,7 +112,7 @@ class Message:
             yield self.mailbox.get_label_by_id(label)
 
 
-    def process_message(self, message_data: str):
+    def process_message(self, message_data: dict):
         self.message_data = message_data
         self.gmail_id = message_data["id"]
         self.thread_id = message_data["threadId"]
@@ -126,20 +125,17 @@ class Message:
         self.is_reply = bool(self.in_reply_to)
         self.message_id = self.email_object["Message-Id"]
         self.subject = utils.decode(self.email_object["Subject"]) or ''
-        self.to = utils.get_emails_address(self.email_object["To"]) or []
-        self.cc = utils.get_emails_address(self.email_object["Cc"]) or []
-        self.bcc = utils.get_emails_address(self.email_object["Bcc"]) or []
+
+        # from, to, cc, bcc
         self.raw_from = self.email_object["From"]
-        try:
-            self.from_ = utils.get_emails_address(self.raw_from)[0]
-            self.raw_from_name = utils.get_full_address_data(self.raw_from)[0]["name"] or ''
-        except IndexError: # edge case where raw_from is None
-            self.from_ = ''
-            self.raw_from_name = ''
-        if not utils.is_english_chars(self.raw_from_name):
-            self.raw_from_name = utils.encode_if_not_english(self.raw_from_name)
-            self.raw_from = f'{self.raw_from_name} <{self.from_}>'
-        self.from_name = utils.decode(self.raw_from_name)
+        self.raw_to = self.email_object["To"]
+        self.raw_cc = self.email_object["Cc"]
+        self.raw_bcc = self.email_object["Bcc"]
+        self.to = utils.get_email_addresses(self.raw_to) or []
+        self.cc = utils.get_email_addresses(self.raw_cc) or []
+        self.bcc = utils.get_email_addresses(self.raw_bcc) or []
+        self.raw_from, self.raw_from_name, self.from_, self.from_name = utils.get_from_info(self.raw_from)
+
         self.raw_date = self.email_object["Date"]
         self.date = utils.parse_date(self.raw_date)
         self.is_bulk = self.email_object['Precedence'] == 'bulk'
@@ -150,6 +146,47 @@ class Message:
         self.html_text = utils.get_html_text(self.html)
         self.has_attachments = any(not attachment.is_inline for attachment in self.attachments) # this is if you what to know if the message has a real attachment
   
+
+
+
+class MessageMetadata:
+
+    def __init__(self, mailbox: "gmail.Gmail", message_data: dict) -> None:
+        self.mailbox = mailbox
+        self.process_message(message_data)
+
+
+    def process_message(self, message_data: dict):
+        self.message_data = message_data
+        self.label_ids = message_data.get('labelIds')
+        self.gmail_id = message_data.get('id')
+        self.snippet = message_data.get('snippet')
+        headers = utils.invert_message_headers(message_data['payload']['headers'])
+        self.raw_date = headers.get('Date')
+        self.date = utils.parse_date(self.raw_date)
+        self.subject = headers.get('Subject')
+        self.raw_reply_to = headers.get('Reply-To')
+        self.message_id = headers.get('Message-Id')
+        self.in_reply_to = headers.get('In-Reply-To')
+        self.references = headers.get('References')
+        self.is_reply = bool(self.in_reply_to)
+
+        # from, to, cc, bcc
+        self.raw_from = headers.get('From')
+        self.raw_to = headers.get('To')
+        self.raw_cc = headers.get('Cc')
+        self.raw_bcc = headers.get('Bcc')
+        self.to = utils.get_email_addresses(self.raw_to) or []
+        self.cc = utils.get_email_addresses(self.raw_cc) or []
+        self.bcc = utils.get_email_addresses(self.raw_bcc) or []
+        self.raw_from, self.raw_from_name, self.from_, self.from_name = utils.get_from_info(self.raw_from)
+
+
+    def __str__(self):
+        return f"Message From: {self.from_}, Subject: {self.subject}, Date: {self.date}"
+
+
+
 
 class Attachment:
 

@@ -173,10 +173,11 @@ class GoogleService(Resource):
         self.authenticated_scopes = creds.scopes
 
 
-    @utils.alt_build
     def _get_service_args(self, creds = None, http = None, developer_key= None):
-        kwargs = build(self.api, self.version, credentials=creds, http= http, developerKey= developer_key)
-        return dict(kwargs)
+        with utils.modify_resource():
+            resource = build(self.api, self.version, credentials=creds, http= http, developerKey= developer_key)
+            kwargs = resource.kwargs # pylint: disable=no-member
+        return kwargs
 
 
     def _add_service_methods(self, service):

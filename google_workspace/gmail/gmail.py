@@ -1,14 +1,13 @@
 import base64
+from typing import Union, Generator
 from datetime import date, datetime
 from queue import Empty, Queue
 from threading import Thread, Event
 from typing import Union
 import functools
 import signal
-from ..service import GoogleService
-from . import utils
-from . import helper
-from .message import Message
+from . import utils, helper, message
+from .. import service as service_module
 from .handlers import MessageAddedHandler
 from .label import Label, LabelShow, MessageShow
 from .scopes import ReadonlyGmailScope
@@ -26,13 +25,13 @@ class Gmail:
 
     def __init__(
         self,
-        service: GoogleService or str = None,
+        service: Union['service_module.GoogleService', str] = None,
         allow_modify: bool = True,
         workers: int = 4,
         save_state: bool = False,
         update_interval: int = 1
         ):
-        if isinstance(service, GoogleService):
+        if isinstance(service, service_module.GoogleService):
             self.service = service
 
         else:
@@ -41,7 +40,7 @@ class Gmail:
                 kwargs["session"] = service
             if not allow_modify:
                 kwargs['scopes'] = [ReadonlyGmailScope()]
-            self.service = GoogleService(api= "gmail", **kwargs)
+            self.service = service_module.GoogleService(api= "gmail", **kwargs)
         self.prevent_flood = False
         self.workers = workers
         self.save_state = save_state
@@ -96,8 +95,11 @@ class Gmail:
         after: date = None,
         before: date = None,
         label_name: str = None,
-        include_spam_and_trash: bool = False
-        ):
+        include_spam_and_trash: bool = False,
+        metadata_only: bool = False,
+        batch: bool = True,
+        limit: int = None
+        ) -> Generator[Union[message.Message, message.MessageMetadata], None, None]:
 
         query = utils.gmail_query_maker(seen, from_, to, subject, after, before, label_name)
 
@@ -107,29 +109,25 @@ class Gmail:
             elif isinstance(label_ids, list):
                 label_ids = list(map(utils.get_label_id, label_ids))
 
-
-        next_page_token = None
-        messages, next_page_token = helper.get_messages(self.service, next_page_token, label_ids, query, include_spam_and_trash)
-        
-        while True:
-            try:
-                message_id = next(messages)["id"]
-
-            except StopIteration:
-                if not next_page_token:
-                    break
-                messages, next_page_token = helper.get_messages(self.service, next_page_token, label_ids, query, include_spam_and_trash)
-                continue
-
-            else:
-                yield Message(self, helper.get_message_raw_data(self.service, message_id, True), True)
+        messages_generator = helper.get_messages_generator(
+            self,
+            label_ids,
+            query,
+            include_spam_and_trash,
+            metadata_only,
+            batch,
+            limit
+            )
+        return messages_generator
 
 
-
-
-    def get_message_by_id(self, message_id: str):
-        raw_message = helper.get_message_raw_data(self.service, message_id, True)
-        return Message(self, raw_message, True)
+    def get_message_by_id(self, message_id: str, metadata_only: bool = False) -> Union[message.Message, message.MessageMetadata]:
+        if metadata_only:
+            message_class, message_format = message.MessageMetadata, 'metadata'
+        else:
+            message_class, message_format = message.Message, 'raw'
+        raw_message = helper.get_message_data(self.service, message_id, message_format)
+        return message_class(self, raw_message)
 
 
     def add_handler(self, handler):
@@ -146,8 +144,9 @@ class Gmail:
                 try:
                     message = self.get_message_by_id(update['message']['id'])
                 except HttpError as e:
-                    if 'Requested entity was not found.' in str(e):
-                        # We got an update for a draft, but was deleted (sent out) or updated since. 
+                    print(e._get_reason().strip())
+                    if e._get_reason().strip() == 'Requested entity was not found.':
+                        # We got an update for a draft, but was deleted (sent out) or updated since.
                         continue
                     else:
                         raise e
@@ -252,22 +251,22 @@ class Gmail:
         in_reply_to: str = None,
         thread_id: str = None,
         check_for_floods: FloodPrevention = None
-        ):
+        ) -> dict:
         if check_for_floods or self.prevent_flood:
             args = vars()
             if helper.check_if_sent_similar_message(self, args, check_for_floods or self.flood_prevention):
                 return False
         message = utils.make_message(
-            self.email_address, 
-            self.sender_name, 
-            to, 
-            cc, 
-            bcc, 
-            subject, 
-            text, 
-            html, 
-            attachments, 
-            references, 
+            self.email_address,
+            self.sender_name,
+            to,
+            cc,
+            bcc,
+            subject,
+            text,
+            html,
+            attachments,
+            references,
             in_reply_to
             )
         b64 = base64.urlsafe_b64encode(message).decode()
