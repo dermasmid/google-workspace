@@ -145,7 +145,6 @@ class Gmail:
                 try:
                     message = self.get_message_by_id(update['message']['id'])
                 except HttpError as e:
-                    print(e._get_reason().strip())
                     if e._get_reason().strip() == 'Requested entity was not found.':
                         # We got an update for a draft, but was deleted (sent out) or updated since.
                         continue
