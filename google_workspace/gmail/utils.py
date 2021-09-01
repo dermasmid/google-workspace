@@ -371,3 +371,10 @@ def create_replied_message(message, text_body: str, html_body: str) -> Tuple[str
 
 def invert_message_headers(message_headers: list) -> dict:
     return {header['name']: header['value'] for header in message_headers}
+
+
+def add_encoding_aliases():
+    # https://bugs.python.org/issue18624
+    from encodings import _aliases
+    _aliases['iso_8859_8_i'] = 'iso8859_8'
+    _aliases['iso-8859-8-e'] = 'iso8859_8'

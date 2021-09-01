@@ -45,6 +45,7 @@ class Gmail:
         self.workers = workers
         self.save_state = save_state
         self.update_interval = update_interval
+        utils.add_encoding_aliases()
         self.handlers = {}
         self.updates_queue = Queue()
         self.stop_request = Event()
