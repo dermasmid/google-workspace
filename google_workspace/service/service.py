@@ -166,7 +166,9 @@ class GoogleService(Resource):
             except EOFError:
                 self.service_state = {}
         if not creds or not creds.valid:
-            creds.refresh(Request())
+            request = Request()
+            creds.refresh(request)
+            request.session.close()
         service = self._get_service_args(creds)
         super().__init__(**service)
         self._make_special_services()

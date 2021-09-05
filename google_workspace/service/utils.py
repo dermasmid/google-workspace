@@ -105,6 +105,12 @@ def configure_error_handling():
             self.http = google_auth_httplib2.AuthorizedHttp(self.http.credentials, http=Http())
 
         data = error_handled_execute(self, *args, **kwargs)
+
+        if getattr(self.http.credentials, 'threading', False):
+            # close connection when using threads, because on the next
+            # call we will be creating a new AuthorizedHttp anyway
+            self.http.close()
+
         return data
 
     HttpRequest.execute = custom_execute
