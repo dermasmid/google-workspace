@@ -14,7 +14,6 @@ from .scopes import ReadonlyGmailScope
 from .flood_prevention import FloodPrevention
 import time
 from datetime import datetime, date
-from googleapiclient.errors import HttpError
 
 
 
@@ -140,34 +139,28 @@ class Gmail:
             full_update = self.updates_queue.get()
             if full_update is None:
                 break
-            update_type = full_update['type']
-            for update in full_update['updates']:
-                try:
-                    message = self.get_message_by_id(update['message']['id'])
-                except HttpError as e:
-                    if e._get_reason().strip() == 'Requested entity was not found.':
-                        # We got an update for a draft, but was deleted (sent out) or updated since.
-                        continue
-                    else:
-                        raise e
 
-                for handler in self.handlers[update_type]:
-                    if handler.check(message):
-                        handler.callback(message)
+            utils.handle_update(self, full_update)
 
 
     def get_updates(self):
         ''' This is the main function which looks for updates on the
         account, and adds it to the queue.
         '''
+        # TODO: hanging if error occurs here
         history_id = self.history_id
         if self.service.service_state.get('history_id') and self.save_state:
             history_id = self.service.service_state['history_id']
         history_types = list(self.handlers.keys())
+        # Determine which labels are to be handled, and if it's just
+        # one, we can ask to api to only send us updates which matches
+        # that label
+        labels_to_handle = utils.get_all_labels_to_handle(self.handlers)
+        label_id = labels_to_handle[0] if len(labels_to_handle) == 1 else None
         # If there's no handler's - quit.
         while history_types:
             try:
-                data = helper.get_history_data(self.service, history_id, history_types)
+                data = helper.get_history_data(self.service, history_id, history_types, label_id)
                 history_id = data['historyId']
                 for history in data.get('history', []):
                     if len(history) == 3:

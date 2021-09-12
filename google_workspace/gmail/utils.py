@@ -9,6 +9,8 @@ from email.message import Message
 from email.header import decode_header
 from mimetypes import guess_type
 from typing import Union, Tuple
+from . import gmail
+from googleapiclient.errors import HttpError
 import email
 import base64
 import textwrap
@@ -378,3 +380,32 @@ def add_encoding_aliases():
     from encodings import _aliases
     _aliases['iso_8859_8_i'] = 'iso8859_8'
     _aliases['iso-8859-8-e'] = 'iso8859_8'
+
+
+def handle_update(mailbox: 'gmail.Gmail', full_update):
+    update_type = full_update['type']
+    handle_labels = get_labels_to_handle_for_update_type(mailbox.handlers, update_type)
+    for update in full_update['updates']:
+        if handle_labels and not any(label in handle_labels for label in update['message'].get('labelIds', [])):
+            # Don't even bother downloading the full message
+            continue
+        try:
+            message = mailbox.get_message_by_id(update['message']['id'])
+        except HttpError as e:
+            if e._get_reason().strip() == 'Requested entity was not found.':
+                # We got an update for a draft, but was deleted (sent out) or updated since.
+                continue
+            else:
+                raise e
+
+        for handler in mailbox.handlers[update_type]:
+            if handler.check(message):
+                handler.callback(message)
+
+
+def get_labels_to_handle_for_update_type(handlers: dict, update_type: str):
+    return list(set(label for handler in handlers[update_type] if handler.labels for label in handler.labels))
+
+
+def get_all_labels_to_handle(handlers):
+    return list(set(label for update_type in handlers for label in get_labels_to_handle_for_update_type(handlers, update_type)))
