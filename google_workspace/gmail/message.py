@@ -3,45 +3,16 @@ from copy import copy
 
 
 
-class Message:
+class BaseMessage():
 
 
-    def __init__(self, mailbox: "gmail.Gmail", message_data: dict):
+    def __init__(self, mailbox: "gmail.Gmail", message_data: dict) -> None:
         self.mailbox = mailbox
-        self.process_message(message_data)
-
-
-    def __str__(self):
-        return f"Message From: {self.from_}, Subject: {self.subject}, Date: {self.date}"
-
-
-    def __contains__(self, item):
-        if item in self.subject or item in self.text or item in self.html_text:
-            return True
-        else:
-            return False
-
-    def _get_parts(self):
-        text_parts = {"text/plain": "text", "text/html": "html"}
-        for part in self.email_object.walk():
-            if part.get_content_maintype() == "multipart":
-                continue
-            mimetype = part.get_content_type()
-            if not part.get('Content-Disposition') and mimetype in text_parts:
-                encoding = part.get_content_charset()
-                if self.is_chat_message:
-                    data = part.get_payload()
-                else:
-                    data = part.get_payload(decode= True)
-                    try:
-                        data = data.decode(encoding or 'utf-8', "ignore")
-                    except LookupError:
-                        data = data.decode('utf-8', "ignore")
-                setattr(self, text_parts[mimetype], data)
-
-            else:
-                self.attachments.append(Attachment(part))
-
+        self.message_data = message_data
+        self.gmail_id = message_data.get("id")
+        self.thread_id = message_data.get("threadId")
+        self.label_ids = message_data.get("labelIds")
+        self.snippet = message_data.get('snippet')
 
 
     def add_label(self, label_id: str):
@@ -72,6 +43,55 @@ class Message:
         return self.mailbox.untrash_message(self.gmail_id)
 
 
+    def get_header(self, header: str):
+        if isinstance(self, MessageMetadata):
+            return utils.invert_message_headers(self.message_data['payload']['headers']).get(header)
+        elif isinstance(self, Message):
+            return self.email_object.get(header) # pylint: disable=no-member
+
+
+
+
+class Message(BaseMessage):
+
+
+    def __init__(self, mailbox: "gmail.Gmail", message_data: dict):
+        super().__init__(mailbox, message_data)
+        self.process_message()
+
+
+    def __str__(self):
+        return f"Message From: {self.from_}, Subject: {self.subject}, Date: {self.date}"
+
+
+    def __contains__(self, item):
+        if item in self.subject or item in self.text or item in self.html_text:
+            return True
+        return False
+
+
+    def _get_parts(self):
+        text_parts = {"text/plain": "text", "text/html": "html"}
+        for part in self.email_object.walk():
+            if part.get_content_maintype() == "multipart":
+                continue
+            mimetype = part.get_content_type()
+            if not part.get('Content-Disposition') and mimetype in text_parts:
+                encoding = part.get_content_charset()
+                if self.is_chat_message:
+                    data = part.get_payload()
+                else:
+                    data = part.get_payload(decode= True)
+                    try:
+                        data = data.decode(encoding or 'utf-8', "ignore")
+                    except LookupError:
+                        data = data.decode('utf-8', "ignore")
+                setattr(self, text_parts[mimetype], data)
+
+            else:
+                self.attachments.append(Attachment(part))
+
+
     def reply(
         self,
         text: str = None,
@@ -94,8 +114,7 @@ class Message:
             thread_id= self.thread_id
             )
         return data
-        
-        
+
 
     def forward(self, to: list or str):
         text_email, html_email = utils.create_forwarded_message(self)
@@ -112,12 +131,8 @@ class Message:
             yield self.mailbox.get_label_by_id(label)
 
 
-    def process_message(self, message_data: dict):
-        self.message_data = message_data
-        self.gmail_id = message_data["id"]
-        self.thread_id = message_data["threadId"]
-        self.label_ids = message_data["labelIds"]
-        self.email_object = utils.get_email_object(message_data['raw'])
+    def process_message(self):
+        self.email_object = utils.get_email_object(self.message_data['raw'])
         self.is_seen = not "UNREAD" in self.label_ids
         self.is_chat_message = "CHAT" in self.label_ids
         self.in_reply_to = self.email_object['In-Reply-To']
@@ -149,19 +164,15 @@ class Message:
 
 
 
-class MessageMetadata:
+class MessageMetadata(BaseMessage):
 
     def __init__(self, mailbox: "gmail.Gmail", message_data: dict) -> None:
-        self.mailbox = mailbox
-        self.process_message(message_data)
+        super().__init__(mailbox, message_data)
+        self.process_message()
 
 
-    def process_message(self, message_data: dict):
-        self.message_data = message_data
-        self.label_ids = message_data.get('labelIds')
-        self.gmail_id = message_data.get('id')
-        self.snippet = message_data.get('snippet')
-        headers = utils.invert_message_headers(message_data['payload']['headers'])
+    def process_message(self):
+        headers = utils.invert_message_headers(self.message_data['payload']['headers'])
         self.raw_date = headers.get('Date')
         self.date = utils.parse_date(self.raw_date)
         self.subject = headers.get('Subject')
@@ -194,7 +205,7 @@ class Attachment:
         self._part = attachment_part
         self.is_inline = attachment_part.get('Content-Disposition', '').startswith('inline')
         self.content_id = attachment_part.get('Content-ID')
-        
+
 
     @property
     def filename(self):
