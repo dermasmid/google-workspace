@@ -137,7 +137,8 @@ def make_message(
     html: str = None,
     attachments: list = [], # list of file paths or list of tuples with (data, filename) format or (filepath, filename to use)
     references: str = None, # For replying emails
-    in_reply_to: str = None # Same
+    in_reply_to: str = None, # Same
+    headers: dict = None
     ) -> bytes:
 
     message = MIMEMultipart("mixed")
@@ -153,6 +154,9 @@ def make_message(
     if bcc:
         message["Bcc"] = ", ".join(bcc) if isinstance(bcc, list) else bcc
 
+    if headers:
+        for header_name, header_value in headers.items():
+            message.add_header(header_name, header_value)
 
     if references:
         message["References"] = references

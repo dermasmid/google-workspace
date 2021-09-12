@@ -1,20 +1,17 @@
 import base64
+import time
 from typing import Union, Generator
 from datetime import date, datetime
 from queue import Empty, Queue
 from threading import Thread, Event
-from typing import Union
 import functools
 import signal
 from . import utils, helper, message
 from .. import service as service_module
-from .handlers import MessageAddedHandler
+from .handlers import MessageAddedHandler, BaseHandler
 from .label import Label, LabelShow, MessageShow
 from .scopes import ReadonlyGmailScope
 from .flood_prevention import FloodPrevention
-import time
-from datetime import datetime, date
-
 
 
 
@@ -130,7 +127,7 @@ class Gmail:
         return message_class(self, raw_message)
 
 
-    def add_handler(self, handler):
+    def add_handler(self, handler: BaseHandler):
         self.handlers[handler.history_type] = self.handlers.get(handler.history_type, []) + [handler]
 
 
@@ -168,12 +165,11 @@ class Gmail:
                 if self.stop_request.is_set():
                     break
                 time.sleep(self.update_interval)
-            except Exception as e:
+            except Exception:
                 self._handle_stop(history_id)
-                raise e
+                raise
         self._handle_stop(history_id)
 
-        
 
     def _handle_stop(self, history_id):
         if not self.save_state:
@@ -243,12 +239,9 @@ class Gmail:
         references: str = None,
         in_reply_to: str = None,
         thread_id: str = None,
-        check_for_floods: FloodPrevention = None
+        headers: dict = None
         ) -> dict:
-        if check_for_floods or self.prevent_flood:
-            args = vars()
-            if helper.check_if_sent_similar_message(self, args, check_for_floods or self.flood_prevention):
-                return False
+
         message = utils.make_message(
             self.email_address,
             self.sender_name,
@@ -260,7 +253,8 @@ class Gmail:
             html,
             attachments,
             references,
-            in_reply_to
+            in_reply_to,
+            headers
             )
         b64 = base64.urlsafe_b64encode(message).decode()
         body = {'raw': b64}
@@ -297,7 +291,7 @@ class Gmail:
 
 
     def create_label(
-        self, 
+        self,
         name: str,
         message_list_visibility = MessageShow(),
         label_list_visibility = LabelShow(),
