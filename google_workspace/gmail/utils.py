@@ -12,7 +12,6 @@ from typing import Union, Tuple
 from . import gmail
 from googleapiclient.errors import HttpError
 import email
-import base64
 import textwrap
 import magic
 import os

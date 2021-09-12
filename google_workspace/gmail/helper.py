@@ -39,7 +39,14 @@ def get_history_data(service, start_history_id: int, history_types: list = None,
         'historyTypes': history_types,
         'labelId': label_id
     }
-    data = service.history_service.list(**params).execute()
+    try:
+        data = service.history_service.list(**params).execute()
+    except HttpError as e:
+        if not e.reason == 'Requested entity was not found.':
+            raise
+        # history_id was invalid (probably an old save_state) so getting the
+        # most recent history_id. This might change.
+        data = {'historyId': service.users().getProfile(userId= "me").execute().get("historyId")}
     return data
 
 

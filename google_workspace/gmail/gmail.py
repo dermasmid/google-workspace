@@ -59,6 +59,7 @@ class Gmail:
 
     def get_user(self):
         self.user = self.service.users().getProfile(userId= "me").execute()
+        self.history_id = self.user.get("historyId")
 
 
     @property
@@ -70,11 +71,6 @@ class Gmail:
     def sender_name(self, sender_name):
         sender_name = utils.encode_if_not_english(sender_name)
         self.user['sender_name'] = sender_name
-
-
-    @property
-    def history_id(self):
-        return self.user.get("historyId")
 
 
     @property
@@ -144,10 +140,8 @@ class Gmail:
         ''' This is the main function which looks for updates on the
         account, and adds it to the queue.
         '''
-        # TODO: hanging if error occurs here
-        history_id = self.history_id
         if self.service.service_state.get('history_id') and self.save_state:
-            history_id = self.service.service_state['history_id']
+            self.history_id = self.service.service_state['history_id']
         history_types = list(self.handlers.keys())
         # Determine which labels are to be handled, and if it's just
         # one, we can ask to api to only send us updates which matches
@@ -156,22 +150,18 @@ class Gmail:
         label_id = labels_to_handle[0] if len(labels_to_handle) == 1 else None
         # If there's no handler's - quit.
         while history_types:
-            try:
-                data = helper.get_history_data(self.service, history_id, history_types, label_id)
-                history_id = data['historyId']
-                for history in data.get('history', []):
-                    if len(history) == 3:
-                        self.updates_queue.put(utils.format_update(history))
-                if self.stop_request.is_set():
-                    break
-                time.sleep(self.update_interval)
-            except Exception:
-                self._handle_stop(history_id)
-                raise
-        self._handle_stop(history_id)
+            data = helper.get_history_data(self.service, self.history_id, history_types, label_id)
+            self.history_id = data['historyId']
+            for history in data.get('history', []):
+                if len(history) == 3:
+                    self.updates_queue.put(utils.format_update(history))
+            if self.stop_request.is_set():
+                break
+            time.sleep(self.update_interval)
 
 
-    def _handle_stop(self, history_id):
+
+    def _handle_stop(self):
         if not self.save_state:
             with self.updates_queue.mutex:
                 self.updates_queue.queue.clear()
@@ -185,7 +175,7 @@ class Gmail:
             if queue_items:
                 oldest_history_id = queue_items[0]['history_id']
             else:
-                oldest_history_id = history_id
+                oldest_history_id = self.history_id
             self.service.save_state(int(oldest_history_id) - 1)
 
         # Stop the workers.
@@ -197,11 +187,17 @@ class Gmail:
         self.service.make_thread_safe()
         signal.signal(signal.SIGINT, self.stop)
         signal.signal(signal.SIGTERM, self.stop)
+        threads = []
         for _ in range(self.workers):
             thread = Thread(target=self.update_worker)
             thread.start()
-
-        self.get_updates()
+            threads.append(thread)
+        try:
+            self.get_updates()
+        except:
+            raise
+        finally:
+            self._handle_stop()
 
 
     def stop(self, signum= None, frame= None):
