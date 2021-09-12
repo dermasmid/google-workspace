@@ -15,6 +15,7 @@ def get_messages(service, next_page_token, label_ids, query, include_spam_and_tr
     next_page_token = data.get("nextPageToken", None)
     return messages, next_page_token
 
+
 @trython.wrap(time_to_sleep=0, errors_to_catch=(HttpError, ), on_exception_callback=service.service.utils.exception_callback)
 def get_message_data_batch(service, message_ids: str, format: Literal['raw', 'metadata'] = 'raw'):
     batch = service.new_batch_http_request()
@@ -31,6 +32,7 @@ def get_message_data(service, message_id: str, format: Literal['raw', 'metadata'
 
 
 def get_history_data(service, start_history_id: int, history_types: list = None, label_id: str = None):
+    # TODO: handle next page tokens
     params = {
         'userId': 'me',
         'startHistoryId': start_history_id,
@@ -132,3 +134,7 @@ def get_messages_generator(
 
             else:
                 yield message_class(mailbox, get_message_data(mailbox.service, message_id, message_format))
+                if limit:
+                    counter += 1
+                    if counter == limit:
+                        break
