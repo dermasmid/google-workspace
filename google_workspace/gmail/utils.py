@@ -238,28 +238,42 @@ def make_label_dict(name: str, message_list_visibility, label_list_visibility, b
 
 def get_label_id(label_id: str):
     system_ids = (
-        'chat', 
-        'sent', 
-        'inbox', 
-        'important', 
-        'trash', 
-        'draft', 
-        'spam', 
-        'category_forums', 
-        'category_updates', 
-        'category_personal', 
-        'category_promotions', 
-        'category_social', 
-        'starred', 
+        'chat',
+        'sent',
+        'inbox',
+        'important',
+        'trash',
+        'draft',
+        'spam',
+        'category_forums',
+        'category_updates',
+        'category_personal',
+        'category_promotions',
+        'category_social',
+        'starred',
         'unread'
     )
 
     if label_id in system_ids:
-        label_id = label_id.upper()
+        return label_id.upper()
 
     return label_id
 
 
+def get_proper_label_ids(label_ids: Union[list, str]) -> Union[list, None]:
+    """Convert labels we get from users to the ones used by gmail.
+    EX. `'inbox'` to `['INBOX']`.
+
+    Args:
+        label_ids (Union[list, str]): Either a list of labels or a single one. 
+
+    Returns:
+        Union[list, None]: If `label_id` was not None this will be a list.
+    """
+    if isinstance(label_ids, str):
+        return [get_label_id(label_ids)]
+    elif isinstance(label_ids, list):
+        return list(map(get_label_id, label_ids))
 
 
 def get_html_text(html: str):

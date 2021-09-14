@@ -1,3 +1,4 @@
+from typing import Union
 from . import utils, gmail
 from copy import copy
 
@@ -15,12 +16,12 @@ class BaseMessage():
         self.snippet = message_data.get('snippet')
 
 
-    def add_label(self, label_id: str):
-        return self.mailbox.service.message_service.modify(userId= 'me', id= self.gmail_id, body= {'addLabelIds': [utils.get_label_id(label_id)]}).execute()
+    def add_labels(self, label_ids: Union[list, str]):
+        return self.mailbox.add_labels_to_message(self.gmail_id, label_ids)
 
 
-    def remove_label(self, label_id: str):
-        return self.mailbox.service.message_service.modify(userId= 'me', id= self.gmail_id, body= {'removeLabelIds': [utils.get_label_id(label_id)]}).execute()
+    def remove_labels(self, label_ids: Union[list, str]):
+        return self.mailbox.remove_labels_from_message(self.gmail_id, label_ids)
 
 
     def mark_read(self):
@@ -64,8 +65,8 @@ class Message(BaseMessage):
         return f"Message From: {self.from_}, Subject: {self.subject}, Date: {self.date}"
 
 
-    def __contains__(self, item):
-        if item in self.subject or item in self.text or item in self.html_text:
+    def __contains__(self, text: str) -> bool:
+        if text in self.subject or text in self.text or text in self.html_text:
             return True
         return False
 
@@ -123,12 +124,6 @@ class Message(BaseMessage):
         new_message.html = html_email
         new_message.subject = f'Fwd: {new_message.subject}'
         self.mailbox.send_message_from_message_obj(new_message, to)
-
-
-    @property
-    def labels(self):
-        for label in self.label_ids:
-            yield self.mailbox.get_label_by_id(label)
 
 
     def process_message(self):

@@ -16,11 +16,7 @@ class BaseHandler:
         self.from_is = from_is
         self.subject_is = subject_is
         self.subject_has = subject_has
-
-        if isinstance(labels, str):
-            self.labels = [utils.get_label_id(labels)]
-        elif isinstance(labels, list):
-            self.labels = list(map(utils.get_label_id, labels))
+        self.labels = utils.get_proper_label_ids(labels)
 
 
     def check(self, message):

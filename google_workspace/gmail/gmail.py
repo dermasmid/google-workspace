@@ -22,22 +22,28 @@ class Gmail:
     def __init__(
         self,
         service: Union['service_module.GoogleService', str] = None,
-        allow_modify: bool = True,
         workers: int = 4,
         save_state: bool = False,
         update_interval: int = 1
         ):
+        """Create a mailbox to interact with the Gmail API.
+
+        Args:
+            service (Union['service_module.GoogleService', str], optional): Pass either a GoogleService 
+        instance or the GoogleService session name. Defaults to None.
+            workers (int, optional): Number of threads to use when handling updates. Defaults to 4.
+            save_state (bool, optional): whether or not to save the sate when the application 
+        stops, if set to True and the application is then restarted and save_state is still set to True,
+        the app will go back in time to handle the updated that happend while the app was offline.
+        See the limitations here: https://developers.google.com/gmail/api/guides/sync#limitations. Defaults to False.
+            update_interval (int, optional): How long to sleep before checking for updates again. Defaults to 1.
+        """
         if isinstance(service, service_module.GoogleService):
             self.service = service
 
         else:
-            kwargs = {}
             if service:
-                kwargs["session"] = service
-            if not allow_modify:
-                kwargs['scopes'] = [ReadonlyGmailScope()]
-            self.service = service_module.GoogleService(api= "gmail", **kwargs)
-        self.prevent_flood = False
+                self.service = service_module.GoogleService(api= "gmail", session= service)
         self.workers = workers
         self.save_state = save_state
         self.update_interval = update_interval
@@ -96,11 +102,7 @@ class Gmail:
 
         query = utils.gmail_query_maker(seen, from_, to, subject, after, before, label_name)
 
-        if label_ids:
-            if isinstance(label_ids, str):
-                label_ids = [utils.get_label_id(label_ids)]
-            elif isinstance(label_ids, list):
-                label_ids = list(map(utils.get_label_id, label_ids))
+        label_ids = utils.get_proper_label_ids(label_ids)
 
         messages_generator = helper.get_messages_generator(
             self,
@@ -158,7 +160,6 @@ class Gmail:
             if self.stop_request.is_set():
                 break
             time.sleep(self.update_interval)
-
 
 
     def _handle_stop(self):
@@ -260,7 +261,13 @@ class Gmail:
         return data
 
 
-    def send_message_from_message_obj(self, message_obj, to: list or str = None, cc: list or str = None, bcc: list or str = None):
+    def send_message_from_message_obj(
+        self,
+        message_obj: 'message.BaseMessage',
+        to: Union[list, str] = None,
+        cc: Union[list, str] = None,
+        bcc: Union[list, str] = None
+        ) -> None:
         attachments = []
         for attachment in message_obj.attachments:
             attachments.append((attachment.payload, attachment.filename))
@@ -321,6 +328,14 @@ class Gmail:
 
     def untrash_message(self, message_id: str):
         return self.service.message_service.untrash(userId= 'me', id= message_id).execute()
+
+
+    def add_labels_to_message(self, message_id: str, label_ids: Union[list, str]) -> dict:
+        return self.service.message_service.modify(userId= 'me', id= message_id, body= {'addLabelIds': utils.get_proper_label_ids(label_ids)}).execute()
+
+
+    def remove_labels_from_message(self, message_id: str, label_ids: Union[list, str]) -> dict:
+        return self.service.message_service.modify(userId= 'me', id= message_id, body= {'removeLabelIds': utils.get_proper_label_ids(label_ids)}).execute()
 
 
     def mark_message_as_read(self, message_id: str):
