@@ -7,7 +7,7 @@ from copy import copy
 class BaseMessage():
 
 
-    def __init__(self, mailbox: "gmail.Gmail", message_data: dict) -> None:
+    def __init__(self, mailbox: "gmail.GmailClient", message_data: dict) -> None:
         self.mailbox = mailbox
         self.message_data = message_data
         self.gmail_id = message_data.get("id")
@@ -56,7 +56,7 @@ class BaseMessage():
 class Message(BaseMessage):
 
 
-    def __init__(self, mailbox: "gmail.Gmail", message_data: dict):
+    def __init__(self, mailbox: "gmail.GmailClient", message_data: dict):
         super().__init__(mailbox, message_data)
         self.process_message()
 
@@ -161,7 +161,7 @@ class Message(BaseMessage):
 
 class MessageMetadata(BaseMessage):
 
-    def __init__(self, mailbox: "gmail.Gmail", message_data: dict) -> None:
+    def __init__(self, mailbox: "gmail.GmailClient", message_data: dict) -> None:
         super().__init__(mailbox, message_data)
         self.process_message()
 

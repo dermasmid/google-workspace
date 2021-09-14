@@ -6,7 +6,7 @@ from ..service import GoogleService
 
 
 
-class Drive:
+class DriveClient:
 
     def __init__(self, service: GoogleService = None):
         if isinstance(service, GoogleService):

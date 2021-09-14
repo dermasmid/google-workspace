@@ -10,13 +10,12 @@ from . import utils, helper, message
 from .. import service as service_module
 from .handlers import MessageAddedHandler, BaseHandler
 from .label import Label, LabelShow, MessageShow
-from .scopes import ReadonlyGmailScope
 from .flood_prevention import FloodPrevention
 
 
 
 
-class Gmail:
+class GmailClient:
 
 
     def __init__(

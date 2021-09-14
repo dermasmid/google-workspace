@@ -1,11 +1,11 @@
 from .utils import make_label_dict
-
+from . import gmail
 
 
 class Label:
 
 
-    def __init__(self, raw_label: dict, mailbox: "Gmail"):
+    def __init__(self, raw_label: dict, mailbox: 'gmail.GmailClient'):
         self.mailbox = mailbox
         self.raw_label = raw_label
         self.id= raw_label.get('id')

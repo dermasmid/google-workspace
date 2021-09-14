@@ -17,8 +17,8 @@ To use the Gmail API simply create a python file and enter this:
 ``` python
 import google_workspace
 
-mailbox = google_workspace.gmail.Gmail()
+mailbox = google_workspace.gmail.GmailClient()
 
-for msg in mailbox.get_messages('inbox'):
-    print(msg)
+for message in mailbox.get_messages('inbox'):
+    print(message)
 ```

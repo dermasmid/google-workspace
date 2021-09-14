@@ -399,7 +399,7 @@ def add_encoding_aliases():
     _aliases['iso-8859-8-e'] = 'iso8859_8'
 
 
-def handle_update(mailbox: 'gmail.Gmail', full_update):
+def handle_update(mailbox: 'gmail.GmailClient', full_update):
     update_type = full_update['type']
     handle_labels = get_labels_to_handle_for_update_type(mailbox.handlers, update_type)
     for update in full_update['updates']:

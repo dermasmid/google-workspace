@@ -87,7 +87,7 @@ def check_if_sent_similar_message(mailbox, message_object, flood_prevention):
 
 
 def get_messages_generator(
-    mailbox: 'gmail.Gmail',
+    mailbox: 'gmail.GmailClient',
     label_ids: list,
     query: str,
     include_spam_and_trash: bool,

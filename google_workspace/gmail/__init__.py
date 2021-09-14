@@ -1,2 +1,1 @@
-from .gmail import Gmail
-from .flood_prevention import FloodPrevention
+from .gmail import GmailClient
