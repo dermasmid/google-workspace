@@ -188,6 +188,10 @@ class MessageMetadata(BaseMessage):
         self.raw_from, self.raw_from_name, self.from_, self.from_name = utils.get_from_info(self.raw_from)
 
 
+    def get_full_message(self) -> Message:
+        return self.mailbox.get_message_by_id(self.gmail_id, metadata_only= False)
+
+
     def __str__(self):
         return f"Message From: {self.from_}, Subject: {self.subject}, Date: {self.date}"
 
