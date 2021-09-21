@@ -1,5 +1,6 @@
 import os
 import json
+from typing import List
 from googleapiclient import discovery
 from httplib2.error import ServerNotFoundError
 from urllib.parse import urlparse, parse_qs
@@ -58,15 +59,14 @@ def get_creds_file(creds):
             raise Exception('I found no creds json file!!!! please go to the google console and download the creds file.')
 
 
-def get_default_scopes(api):
-    from ..gmail.scopes import get_gmail_default_scope
-    from ..drive.scopes import get_drive_default_scope
+def get_default_scopes(api: str) -> List[str]:
+    from .. import drive, gmail
     default_scopes = {
-        "drive": get_drive_default_scope,
-        "gmail": get_gmail_default_scope,
-        "photoslibrary": ['https://www.googleapis.com/auth/photoslibrary']
+        "drive": drive.scopes.FULLACCESSDRIVESCOPE,
+        "gmail": gmail.scopes.FULLACCESSGMAILSCOPE,
+        "photoslibrary": 'https://www.googleapis.com/auth/photoslibrary'
         }
-    return [default_scopes[api]()]
+    return [default_scopes[api]]
 
 
 @contextmanager

@@ -1,3 +1,3 @@
-from . import service, types, gmail, drive
+from . import service, gmail, drive
 
 __version__ = '0.19.1'

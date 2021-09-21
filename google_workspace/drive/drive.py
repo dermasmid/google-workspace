@@ -1,22 +1,21 @@
-import os
-from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
+from googleapiclient.http import MediaFileUpload
 from mimetypes import guess_type
-from ..service import GoogleService
+from .. import service as service_module
 
 
 
 
 class DriveClient:
 
-    def __init__(self, service: GoogleService = None):
-        if isinstance(service, GoogleService):
+    def __init__(self, service: 'service_module.GoogleService' = None):
+        if isinstance(service, service_module.GoogleService):
             self.service = service
         
         else:
             self.connect()
 
     def connect(self):
-        self.service = GoogleService(api= "drive")
+        self.service = service_module.GoogleService(api= "drive")
 
 
 

@@ -15,7 +15,7 @@ def get_messages(service, next_page_token, label_ids, query, include_spam_and_tr
     return messages, next_page_token
 
 
-@trython.wrap(time_to_sleep=0, errors_to_catch=(HttpError, ), on_exception_callback=service.service.utils.exception_callback)
+@trython.wrap(time_to_sleep=0, errors_to_catch=(HttpError, ), on_exception_callback=service.utils.exception_callback)
 def get_message_data_batch(service, message_ids: str, format: Literal['raw', 'metadata'] = 'raw'):
     batch = service.new_batch_http_request()
     for message_id in message_ids:

@@ -1,12 +1,13 @@
 import json
 import os
+from typing import Union
 import pickle
 from googleapiclient.discovery import build, Resource
 from google_auth_oauthlib.flow import InstalledAppFlow, Flow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 import threading
-from ..service import utils
+from . import utils
 from httplib2 import Http
 import urllib
 
@@ -20,7 +21,7 @@ class GoogleService(Resource):
         api: str,
         session: str = None,
         client_secrets: str = "creds.json",
-        scopes: list = [],
+        scopes: Union[str, list] = None,
         version: str = None,
         api_key: str = None,
         http: Http = None,
@@ -64,7 +65,9 @@ class GoogleService(Resource):
                 client_secrets = utils.get_creds_file(client_secrets)
                 with open(client_secrets, 'r') as f:
                     self.client_config = json.load(f)
-                self.scopes = list(scope.scope_code for scope in scopes or utils.get_default_scopes(self.api))
+                if isinstance(scopes, str):
+                    scopes = [scopes]
+                self.scopes = scopes or utils.get_default_scopes(self.api)
 
 
     def local_oauth(self, server_port: int = 2626):
