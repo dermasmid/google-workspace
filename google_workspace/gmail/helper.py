@@ -1,9 +1,8 @@
 from typing import Literal, Union, Generator
-from . import message, gmail, utils
+from . import message, gmail
 from .. import service
 import trython
 from googleapiclient.errors import HttpError
-from datetime import datetime
 
 
 def get_messages(service, next_page_token, label_ids, query, include_spam_and_trash):
@@ -58,32 +57,6 @@ def get_labels(service):
 def get_label_raw_data(service, label_id: str):
     data = service.labels_service.get(userId= 'me', id= label_id).execute()
     return data
-
-
-def check_if_sent_similar_message(mailbox, message_object, flood_prevention):
-    kwargs = {}
-    # if raw_from is passed we have to remove the name first becuz the api wont return anything
-    if 'to' in flood_prevention.similarities:
-        to = message_object['to']
-        if '<' in to:
-            start = to.find('<') + 1
-            end = to.find('>')
-            message_object['to'] = to[start:end]
-    kwargs['after'] = flood_prevention.after_date
-    for similarity in flood_prevention.similarities:
-        value = message_object[similarity]
-        kwargs[similarity] = value
-    query = utils.gmail_query_maker(**kwargs)
-    messages_data = get_messages(mailbox.service, None, ['SENT'], query, False)[0]
-    if type(flood_prevention.after_date) is datetime:
-        final_messages = []
-        for message_data in messages_data:
-            message_date = message.Message(mailbox, get_message_data(mailbox.service, message_data['id'], 'raw')).date
-            if flood_prevention.after_date < message_date:
-                final_messages.append(message_data)
-        messages = final_messages
-    response = len(list(messages)) >= flood_prevention.number_of_messages
-    return response
 
 
 def get_messages_generator(

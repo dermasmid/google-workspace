@@ -10,8 +10,6 @@ from . import utils, helper, message
 from .. import service as service_module
 from .handlers import MessageAddedHandler, BaseHandler
 from .label import Label, LabelShow, MessageShow
-from .flood_prevention import FloodPrevention
-
 
 
 
@@ -316,10 +314,6 @@ class GmailClient:
 
     def get_filters(self):
         return self.service.settings_service.filters().list(userId= 'me').execute()
-
-
-    def set_flood_prevention(self, similarities: list, after_date: date or datetime or int, number_of_messages: int = 1):
-        self.flood_prevention = FloodPrevention(similarities, after_date, number_of_messages)
 
 
     def delete_message(self, message_id: str):
