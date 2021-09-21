@@ -399,15 +399,15 @@ def add_encoding_aliases():
     _aliases['iso-8859-8-e'] = 'iso8859_8'
 
 
-def handle_update(mailbox: 'gmail.GmailClient', full_update):
+def handle_update(gmail_client: 'gmail.GmailClient', full_update):
     update_type = full_update['type']
-    handle_labels = mailbox._handlers_config['labels_per_type'][update_type]
+    handle_labels = gmail_client._handlers_config['labels_per_type'][update_type]
     for update in full_update['updates']:
         if handle_labels and not any(label in handle_labels for label in update['message'].get('labelIds', [])):
             # Don't even bother downloading the full message
             continue
         try:
-            message = mailbox.get_message_by_id(update['message']['id'])
+            message = gmail_client.get_message_by_id(update['message']['id'])
         except HttpError as e:
             if e._get_reason().strip() == 'Requested entity was not found.':
                 # We got an update for a draft, but was deleted (sent out) or updated since.
@@ -415,7 +415,7 @@ def handle_update(mailbox: 'gmail.GmailClient', full_update):
             else:
                 raise e
 
-        for handler in mailbox.handlers[update_type]:
+        for handler in gmail_client.handlers[update_type]:
             if handler.check(message):
                 handler.callback(message)
 

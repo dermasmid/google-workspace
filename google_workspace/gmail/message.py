@@ -7,8 +7,8 @@ from copy import copy
 class BaseMessage():
 
 
-    def __init__(self, mailbox: "gmail.GmailClient", message_data: dict) -> None:
-        self.mailbox = mailbox
+    def __init__(self, gmail_client: "gmail.GmailClient", message_data: dict) -> None:
+        self.gmail_client = gmail_client
         self.message_data = message_data
         self.gmail_id = message_data.get("id")
         self.thread_id = message_data.get("threadId")
@@ -17,31 +17,31 @@ class BaseMessage():
 
 
     def add_labels(self, label_ids: Union[list, str]):
-        return self.mailbox.add_labels_to_message(self.gmail_id, label_ids)
+        return self.gmail_client.add_labels_to_message(self.gmail_id, label_ids)
 
 
     def remove_labels(self, label_ids: Union[list, str]):
-        return self.mailbox.remove_labels_from_message(self.gmail_id, label_ids)
+        return self.gmail_client.remove_labels_from_message(self.gmail_id, label_ids)
 
 
     def mark_read(self):
-        return self.mailbox.mark_message_as_read(self.gmail_id)
+        return self.gmail_client.mark_message_as_read(self.gmail_id)
 
 
     def mark_unread(self):
-        return self.mailbox.mark_message_as_unread(self.gmail_id)
+        return self.gmail_client.mark_message_as_unread(self.gmail_id)
 
 
     def delete(self):
-        return self.mailbox.delete_message(self.gmail_id)
+        return self.gmail_client.delete_message(self.gmail_id)
 
 
     def trash(self):
-        return self.mailbox.trash_message()
+        return self.gmail_client.trash_message()
 
 
     def untrash(self):
-        return self.mailbox.untrash_message(self.gmail_id)
+        return self.gmail_client.untrash_message(self.gmail_id)
 
 
     def get_header(self, header: str):
@@ -56,8 +56,8 @@ class BaseMessage():
 class Message(BaseMessage):
 
 
-    def __init__(self, mailbox: "gmail.GmailClient", message_data: dict):
-        super().__init__(mailbox, message_data)
+    def __init__(self, gmail_client: "gmail.GmailClient", message_data: dict):
+        super().__init__(gmail_client, message_data)
         self.process_message()
 
 
@@ -104,7 +104,7 @@ class Message(BaseMessage):
         else:
             references = self.message_id
         text_email, html_email = utils.create_replied_message(self, text, html)
-        data = self.mailbox.send_message(
+        data = self.gmail_client.send_message(
             to= self.raw_from,
             subject= f"Re: {self.subject}",
             text= text_email,
@@ -123,7 +123,7 @@ class Message(BaseMessage):
         new_message.text = text_email
         new_message.html = html_email
         new_message.subject = f'Fwd: {new_message.subject}'
-        self.mailbox.send_message_from_message_obj(new_message, to)
+        self.gmail_client.send_message_from_message_obj(new_message, to)
 
 
     def process_message(self):
@@ -161,8 +161,8 @@ class Message(BaseMessage):
 
 class MessageMetadata(BaseMessage):
 
-    def __init__(self, mailbox: "gmail.GmailClient", message_data: dict) -> None:
-        super().__init__(mailbox, message_data)
+    def __init__(self, gmail_client: "gmail.GmailClient", message_data: dict) -> None:
+        super().__init__(gmail_client, message_data)
         self.process_message()
 
 
@@ -189,7 +189,7 @@ class MessageMetadata(BaseMessage):
 
 
     def get_full_message(self) -> Message:
-        return self.mailbox.get_message_by_id(self.gmail_id, metadata_only= False)
+        return self.gmail_client.get_message_by_id(self.gmail_id, metadata_only= False)
 
 
     def __str__(self):

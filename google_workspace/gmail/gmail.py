@@ -23,7 +23,7 @@ class GmailClient:
         save_state: bool = False,
         update_interval: int = 1
         ):
-        """Create a mailbox to interact with the Gmail API.
+        """Create a Gmail client to interact with the Gmail API.
 
         Args:
             service (Union['service_module.GoogleService', str], optional): Pass either a GoogleService 

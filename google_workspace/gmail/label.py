@@ -5,8 +5,8 @@ from . import gmail
 class Label:
 
 
-    def __init__(self, raw_label: dict, mailbox: 'gmail.GmailClient'):
-        self.mailbox = mailbox
+    def __init__(self, raw_label: dict, gmail_client: 'gmail.GmailClient'):
+        self.gmail_client = gmail_client
         self.raw_label = raw_label
         self.id= raw_label.get('id')
         self.name = raw_label.get('name')
@@ -26,7 +26,7 @@ class Label:
 
 
     def get_messages(self):
-        return self.mailbox.get_messages(label_ids= self.id)
+        return self.gmail_client.get_messages(label_ids= self.id)
 
 
     def modify(
@@ -41,8 +41,8 @@ class Label:
         body = make_label_dict(name= name, message_list_visibility= message_list_visibility, label_list_visibility= label_list_visibility, 
             background_color= background_color, text_color= text_color
             )
-        data = self.mailbox.service.labels_service.patch(userId= 'me',id= self.id, body= body).execute()
-        return self.mailbox.get_label_by_id(data['id'])
+        data = self.gmail_client.service.labels_service.patch(userId= 'me',id= self.id, body= body).execute()
+        return self.gmail_client.get_label_by_id(data['id'])
 
 
 

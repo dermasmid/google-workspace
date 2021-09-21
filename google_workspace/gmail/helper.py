@@ -60,7 +60,7 @@ def get_label_raw_data(service, label_id: str):
 
 
 def get_messages_generator(
-    mailbox: 'gmail.GmailClient',
+    gmail_client: 'gmail.GmailClient',
     label_ids: list,
     query: str,
     include_spam_and_trash: bool,
@@ -75,7 +75,7 @@ def get_messages_generator(
         message_class, message_format = message.Message, 'raw'
 
 
-    messages, next_page_token = get_messages(mailbox.service, None, label_ids, query, include_spam_and_trash)
+    messages, next_page_token = get_messages(gmail_client.service, None, label_ids, query, include_spam_and_trash)
     counter = 0
 
     if batch:
@@ -90,14 +90,14 @@ def get_messages_generator(
                         raise StopIteration
 
             except StopIteration:
-                messages_data = get_message_data_batch(mailbox.service, message_ids, message_format)
+                messages_data = get_message_data_batch(gmail_client.service, message_ids, message_format)
                 for message_data in messages_data:
-                    yield message_class(mailbox, message_data)
+                    yield message_class(gmail_client, message_data)
                 message_ids = []
                 if not next_page_token or counter == limit:
                     break
 
-                messages, next_page_token = get_messages(mailbox.service, next_page_token, label_ids, query, include_spam_and_trash)
+                messages, next_page_token = get_messages(gmail_client.service, next_page_token, label_ids, query, include_spam_and_trash)
                 continue
 
     else:
@@ -109,11 +109,11 @@ def get_messages_generator(
                 if not next_page_token:
                     break
 
-                messages, next_page_token = get_messages(mailbox.service, next_page_token, label_ids, query, include_spam_and_trash)
+                messages, next_page_token = get_messages(gmail_client.service, next_page_token, label_ids, query, include_spam_and_trash)
                 continue
 
             else:
-                yield message_class(mailbox, get_message_data(mailbox.service, message_id, message_format))
+                yield message_class(gmail_client, get_message_data(gmail_client.service, message_id, message_format))
                 if limit:
                     counter += 1
                     if counter == limit:
