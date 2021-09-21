@@ -401,7 +401,7 @@ def add_encoding_aliases():
 
 def handle_update(mailbox: 'gmail.GmailClient', full_update):
     update_type = full_update['type']
-    handle_labels = get_labels_to_handle_for_update_type(mailbox.handlers, update_type)
+    handle_labels = mailbox._handlers_config['labels_per_type'][update_type]
     for update in full_update['updates']:
         if handle_labels and not any(label in handle_labels for label in update['message'].get('labelIds', [])):
             # Don't even bother downloading the full message
@@ -420,9 +420,12 @@ def handle_update(mailbox: 'gmail.GmailClient', full_update):
                 handler.callback(message)
 
 
-def get_labels_to_handle_for_update_type(handlers: dict, update_type: str):
-    return list(set(label for handler in handlers[update_type] if handler.labels for label in handler.labels))
-
-
-def get_all_labels_to_handle(handlers):
-    return list(set(label for update_type in handlers for label in get_labels_to_handle_for_update_type(handlers, update_type)))
+def add_labels_to_handler_config(labels: list, config: Union[list, None]) -> Union[list, None]:
+    if labels:
+        if not config is None:
+            for label in labels:
+                if not label in config:
+                    config.append(label)
+    else:
+        config = None
+    return config

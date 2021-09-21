@@ -1,6 +1,6 @@
 import base64
 import time
-from typing import Union, Generator
+from typing import Union, Generator, Callable, Type, List, Any
 from datetime import date, datetime
 from queue import Empty, Queue
 from threading import Thread, Event
@@ -48,6 +48,7 @@ class GmailClient:
         self.update_interval = update_interval
         utils.add_encoding_aliases()
         self.handlers = {}
+        self._handlers_config = {'labels': [], 'labels_per_type': {}}
         self.updates_queue = Queue()
         self.stop_request = Event()
         if self.service.is_authenticated:
@@ -124,8 +125,14 @@ class GmailClient:
         return message_class(self, raw_message)
 
 
-    def add_handler(self, handler: BaseHandler):
-        self.handlers[handler.history_type] = self.handlers.get(handler.history_type, []) + [handler]
+    def add_handler(self, handler: Type[BaseHandler]):
+        for history_type in handler.history_types:
+            self.handlers[history_type] = self.handlers.get(history_type, []) + [handler]
+            self._handlers_config['labels_per_type'][history_type] = self._handlers_config['labels_per_type'].get(history_type, [])
+            self._handlers_config['labels_per_type'][history_type] = utils.add_labels_to_handler_config(
+                handler.labels, self._handlers_config['labels_per_type'][history_type])
+
+        self._handlers_config['labels'] = utils.add_labels_to_handler_config(handler.labels, self._handlers_config['labels'])
 
 
     def update_worker(self):
@@ -147,8 +154,8 @@ class GmailClient:
         # Determine which labels are to be handled, and if it's just
         # one, we can ask to api to only send us updates which matches
         # that label
-        labels_to_handle = utils.get_all_labels_to_handle(self.handlers)
-        label_id = labels_to_handle[0] if len(labels_to_handle) == 1 else None
+        labels_to_handle = self._handlers_config['labels']
+        label_id = labels_to_handle[0] if (not labels_to_handle is None and len(labels_to_handle) == 1) else None
         # If there's no handler's - quit.
         while history_types:
             data = helper.get_history_data(self.service, self.history_id, history_types, label_id)
@@ -206,16 +213,14 @@ class GmailClient:
 
     def on_message(
         self,
-        func: callable = None,
+        func: Callable[[Type['message.BaseMessage']], Any] = None,
         labels: Union[list, str] = 'inbox',
-        from_is: str = None,
-        subject_is: str = None,
-        subject_has: str = None
+        filters: List[Callable[[Type['message.BaseMessage']], bool]] = None
         ):
 
         @functools.wraps(func)
         def decorator(func):
-            self.add_handler(MessageAddedHandler(func, labels, from_is, subject_is, subject_has))
+            self.add_handler(MessageAddedHandler(func, labels, filters))
             return func
 
         if func:
