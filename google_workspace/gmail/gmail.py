@@ -343,11 +343,11 @@ class GmailClient:
 
 
     def mark_message_as_read(self, message_id: str):
-        return self.service.message_service.modify(userId= 'me', id= message_id, body= {'removeLabelIds': ['UNREAD']}).execute()
+        return self.remove_labels_from_message(message_id, ['UNREAD'])
 
 
     def mark_message_as_unread(self, message_id: str):
-        return self.service.message_service.modify(userId= 'me', id= message_id, body= {'addLabelIds': ['UNREAD']}).execute()
+        return self.add_labels_to_message(message_id, ['UNREAD'])
 
 
     def get_auto_forwarding_settings(self) -> dict:
