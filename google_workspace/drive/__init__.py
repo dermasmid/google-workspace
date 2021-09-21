@@ -1,2 +1,2 @@
-from .drive import DriveClient
 from . import scopes
+from .drive import DriveClient

@@ -1,22 +1,22 @@
-import os
 import json
+import os
+import socket
+import ssl
+import time
+import wsgiref
+from contextlib import contextmanager
+from socket import timeout
 from typing import List
-from googleapiclient import discovery
-from httplib2.error import ServerNotFoundError
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import parse_qs, urlparse
+from wsgiref import simple_server
+
 import google_auth_httplib2
-from httplib2 import Http
+import trython
+from googleapiclient import discovery
 from googleapiclient.errors import HttpError
 from googleapiclient.http import HttpRequest
-from contextlib import contextmanager
-import trython
-import time
-from socket import timeout
-import wsgiref
-import socket
-from wsgiref import simple_server
-import ssl
-
+from httplib2 import Http
+from httplib2.error import ServerNotFoundError
 
 ERRORS_TO_CATCH = (
     BrokenPipeError,

@@ -1,6 +1,6 @@
-from typing import Type, Union, Callable, Literal, List, Any
-from . import utils, message
+from typing import Any, Callable, List, Literal, Type, Union
 
+from . import message, utils
 
 HISTORY_TYPE_LITERAL = Literal['messageAdded', 'messageDeleted', 'labelAdded', 'labelRemoved']
 

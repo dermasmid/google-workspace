@@ -1,8 +1,10 @@
-from typing import Literal, Union, Generator
-from . import message, gmail
-from .. import service
+from typing import Generator, Literal, Union
+
 import trython
 from googleapiclient.errors import HttpError
+
+from .. import service
+from . import gmail, message
 
 
 def get_messages(service, next_page_token, label_ids, query, include_spam_and_trash):

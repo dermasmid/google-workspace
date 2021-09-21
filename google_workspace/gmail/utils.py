@@ -1,24 +1,25 @@
-from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
-from email.mime.audio import MIMEAudio
-from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
-from email.mime.base import MIMEBase
-from email.utils import getaddresses
-from email.message import Message
-from email.header import decode_header
-from mimetypes import guess_type
-from typing import Union, Tuple
-from . import gmail
-from googleapiclient.errors import HttpError
-import email
-import textwrap
-import magic
-import os
-from datetime import datetime, date
 import base64
+import email
+import os
+import textwrap
+from datetime import date, datetime
+from email.header import decode_header
+from email.message import Message
+from email.mime.application import MIMEApplication
+from email.mime.audio import MIMEAudio
+from email.mime.base import MIMEBase
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.utils import getaddresses
 from html.parser import HTMLParser
+from mimetypes import guess_type
+from typing import Tuple, Union
 
+import magic
+from googleapiclient.errors import HttpError
+
+from . import gmail
 
 handler_update_key_to_type_map = {
     'messagesAdded': 'messageAdded',

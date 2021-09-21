@@ -1,8 +1,8 @@
-from googleapiclient.http import MediaFileUpload
 from mimetypes import guess_type
+
+from googleapiclient.http import MediaFileUpload
+
 from .. import service as service_module
-
-
 
 
 class DriveClient:

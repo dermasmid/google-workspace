@@ -1,2 +1,2 @@
+from . import handlers, scopes
 from .gmail import GmailClient
-from . import scopes, handlers

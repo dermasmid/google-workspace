@@ -1,7 +1,7 @@
-from typing import Union
-from . import utils, gmail
 from copy import copy
+from typing import Union
 
+from . import gmail, utils
 
 
 class BaseMessage():

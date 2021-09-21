@@ -1,16 +1,17 @@
 import json
 import os
-from typing import Union
 import pickle
-from googleapiclient.discovery import build, Resource
-from google_auth_oauthlib.flow import InstalledAppFlow, Flow
+import threading
+import urllib
+from typing import Union
+
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-import threading
-from . import utils
+from google_auth_oauthlib.flow import Flow, InstalledAppFlow
+from googleapiclient.discovery import Resource, build
 from httplib2 import Http
-import urllib
 
+from . import utils
 
 
 class GoogleService(Resource):

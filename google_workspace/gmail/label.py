@@ -1,5 +1,5 @@
-from .utils import make_label_dict
 from . import gmail
+from .utils import make_label_dict
 
 
 class Label:

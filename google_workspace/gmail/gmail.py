@@ -1,16 +1,16 @@
 import base64
-import time
-from typing import Union, Generator, Callable, Type, List, Any
-from datetime import date
-from queue import Empty, Queue
-from threading import Thread, Event
 import functools
 import signal
-from . import utils, helper, message
-from .. import service as service_module
-from .handlers import MessageAddedHandler, BaseHandler
-from .label import Label, LabelShow, MessageShow
+import time
+from datetime import date
+from queue import Empty, Queue
+from threading import Event, Thread
+from typing import Any, Callable, Generator, List, Type, Union
 
+from .. import service as service_module
+from . import helper, message, utils
+from .handlers import BaseHandler, MessageAddedHandler
+from .label import Label, LabelShow, MessageShow
 
 
 class GmailClient:
