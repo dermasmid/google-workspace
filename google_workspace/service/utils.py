@@ -17,6 +17,14 @@ from wsgiref import simple_server
 import ssl
 
 
+ERRORS_TO_CATCH = (
+    BrokenPipeError,
+    timeout,
+    HttpError,
+    ConnectionResetError,
+    ServerNotFoundError,
+    ssl.SSLEOFError #ssl.SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1131)
+    )
 
 
 default_versions = {
@@ -96,7 +104,7 @@ def configure_error_handling():
     error_handled_execute = trython.wrap(
         HttpRequest.execute,
         time_to_sleep= 10,
-        errors_to_catch= (BrokenPipeError, timeout, HttpError, ConnectionResetError, ServerNotFoundError),
+        errors_to_catch= ERRORS_TO_CATCH,
         on_exception_callback= exception_callback
         )
 
