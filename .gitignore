@@ -8,3 +8,4 @@ dist/
 
 *.pickle
 *secret*.json
+*creds.json
