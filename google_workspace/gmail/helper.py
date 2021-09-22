@@ -47,7 +47,7 @@ def get_history_data(service, start_history_id: int, history_types: list = None,
             raise
         # history_id was invalid (probably an old save_state) so getting the
         # most recent history_id. This might change.
-        data = {'historyId': service.users().getProfile(userId= "me").execute().get("historyId")}
+        data = {'historyId': service.users_service.getProfile(userId= "me").execute().get("historyId")}
     return data
 
 

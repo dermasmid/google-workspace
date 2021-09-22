@@ -3,7 +3,8 @@ import os
 import pickle
 import threading
 import urllib
-from typing import Union
+from pathlib import Path
+from typing import Any, Union
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -28,11 +29,13 @@ class GoogleService(Resource):
         http: Http = None,
         service: Resource = None,
         creds: Credentials = None,
+        workdir: str = None
         ):
         self.session = session or api
         self.version = version or utils.default_versions[api]
         self.api = api
-        self.pickle_file = f"{self.session}.pickle"
+        self.workdir = Path(workdir or '.')
+        self.pickle_file = self.workdir / (session + '.pickle')
         self.is_authenticated = os.path.exists(self.pickle_file)
         utils.configure_error_handling()
         if service:
@@ -40,7 +43,7 @@ class GoogleService(Resource):
                 self._add_service_methods(service)
                 self._make_special_services()
             else:
-                raise Exception("Invalid argument")
+                raise ValueError("Invalid argument")
 
 
         elif api_key:
@@ -63,9 +66,10 @@ class GoogleService(Resource):
             if self.is_authenticated:
                 self._get_service()
             else:
-                client_secrets = utils.get_creds_file(client_secrets)
+                client_secrets = self.workdir / utils.get_creds_file(client_secrets)
                 with open(client_secrets, 'r') as f:
                     self.client_config = json.load(f)
+
                 if isinstance(scopes, str):
                     scopes = [scopes]
                 self.scopes = scopes or utils.get_default_scopes(self.api)
@@ -151,14 +155,36 @@ class GoogleService(Resource):
         self._http.credentials.threading = True
 
 
-    def save_state(self, history_id):
+    def get_service_state_value(self, key: str) -> Any:
+        return self.service_state.get(self.api, {}).get(key)
+
+
+    def update_service_state(self, key: str, value: Any) -> None:
+        if not self.api in self.service_state:
+            self.service_state[self.api] = {}
+        self.service_state[self.api][key] = value
+
+
+    def save_service_state(self) -> None:
         with open(self.pickle_file, 'wb') as f:
             pickle.dump(self._http.credentials, f)
-            self.service_state['history_id'] = history_id
             pickle.dump(self.service_state, f)
 
 
-    def __bool__(self):
+    def close(self) -> None:
+        if self.is_authenticated:
+            self._http.close()
+
+
+    def __enter__(self):
+        return self
+
+
+    def __exit__(self, exc_type, exc_value, exc_tb) -> None:
+        self.close()
+
+
+    def __bool__(self) -> bool:
         return self.is_authenticated
 
 
@@ -168,7 +194,7 @@ class GoogleService(Resource):
             try:
                 self.service_state = pickle.load(f)
             except EOFError:
-                self.service_state = {}
+                self.service_state = {self.api: {}}
         if not creds or not creds.valid:
             request = Request()
             creds.refresh(request)
@@ -192,14 +218,14 @@ class GoogleService(Resource):
 
     def _make_special_services(self):
         if self.api == "gmail":
-            self.users_service = self.users() # pylint: disable=no-member
-            self.history_service = self.users_service.history()
-            self.message_service = self.users_service.messages()
-            self.labels_service = self.users_service.labels()
-            self.settings_service = self.users_service.settings()
-            self.attachment_service = self.message_service.attachments()
+            self.users_service: Resource = self.users() # pylint: disable=no-member
+            self.history_service: Resource = self.users_service.history()
+            self.message_service: Resource = self.users_service.messages()
+            self.labels_service: Resource = self.users_service.labels()
+            self.settings_service: Resource = self.users_service.settings()
+            self.attachment_service: Resource = self.message_service.attachments()
         elif self.api == "drive":
-            self.files_service = self.files() # pylint: disable=no-member
+            self.files_service: Resource = self.files() # pylint: disable=no-member
 
 
     def _save_creds(self, creds):

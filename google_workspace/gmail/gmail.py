@@ -62,7 +62,7 @@ class GmailClient:
 
 
     def get_user(self):
-        self.user = self.service.users().getProfile(userId= "me").execute()
+        self.user = self.service.users_service.getProfile(userId= "me").execute()
         self.history_id = self.user.get("historyId")
 
 
@@ -146,8 +146,8 @@ class GmailClient:
         ''' This is the main function which looks for updates on the
         account, and adds it to the queue.
         '''
-        if self.service.service_state.get('history_id') and self.save_state:
-            self.history_id = self.service.service_state['history_id']
+        if self.save_state:
+            self.history_id = self.service.get_service_state_value('history_id') or self.history_id
         history_types = list(self.handlers.keys())
         # Determine which labels are to be handled, and if it's just
         # one, we can ask to api to only send us updates which matches
@@ -181,7 +181,8 @@ class GmailClient:
                 oldest_history_id = queue_items[0]['history_id']
             else:
                 oldest_history_id = self.history_id
-            self.service.save_state(int(oldest_history_id) - 1)
+            self.service.update_service_state('history_id', int(oldest_history_id) - 1)
+            self.service.save_service_state()
 
         # Stop the workers.
         for _ in range(self.workers):
@@ -345,23 +346,23 @@ class GmailClient:
 
 
     def get_auto_forwarding_settings(self) -> dict:
-        return self.service.users().settings().getAutoForwarding(userId= 'me').execute()
+        return self.service.settings_service.getAutoForwarding(userId= 'me').execute()
 
 
     def get_imap_settings(self) -> dict:
-        return self.service.users().settings().getImap(userId= 'me').execute()
+        return self.service.settings_service.getImap(userId= 'me').execute()
 
 
     def get_language_settings(self) -> dict:
-        return self.service.users().settings().getLanguage(userId= 'me').execute()
+        return self.service.settings_service.getLanguage(userId= 'me').execute()
 
 
     def get_pop_settings(self) -> dict:
-        return self.service.users().settings().getPop(userId= 'me').execute()
+        return self.service.settings_service.getPop(userId= 'me').execute()
 
 
     def get_vacation_settings(self) -> dict:
-        return self.service.users().settings().getVacation(userId= 'me').execute()
+        return self.service.settings_service.getVacation(userId= 'me').execute()
 
 
     def update_auto_forwarding_settings(
@@ -376,7 +377,7 @@ class GmailClient:
             'emailAddress': email_address,
             'disposition': disposition
         }
-        return self.service.users().settings().updateAutoForwarding(userId= 'me', body= auto_forwarding).execute()
+        return self.service.settings_service.updateAutoForwarding(userId= 'me', body= auto_forwarding).execute()
 
 
     def update_imap_settings(
@@ -393,14 +394,14 @@ class GmailClient:
             'expungeBehavior': expunge_behavior,
             'maxFolderSize': max_folder_size
         }
-        return self.service.users().settings().updateImap(userId= 'me', body= imap_settings).execute()
+        return self.service.settings_service.updateImap(userId= 'me', body= imap_settings).execute()
 
 
     def update_language_settings(self, display_language: str) -> dict:
         language_settings = {
             'displayLanguage': display_language
         }
-        return self.service.users().settings().updateLanguage(userId= 'me', body= language_settings).execute()
+        return self.service.settings_service.updateLanguage(userId= 'me', body= language_settings).execute()
 
 
     def update_pop_settings(self, access_window: str, disposition: str) -> dict:
@@ -408,7 +409,7 @@ class GmailClient:
             'accessWindow': access_window,
             'disposition': disposition
         }
-        return self.service.users().settings().updateLanguage(userId= 'me', body= pop_settings).execute()
+        return self.service.settings_service.updateLanguage(userId= 'me', body= pop_settings).execute()
 
 
     def update_vacation_settings(
@@ -433,4 +434,4 @@ class GmailClient:
             'startTime': start_time,
             'endTime': end_time
         }
-        return self.service.users().settings().updateVacation(userId= 'me', body= vacation_settings).execute()
+        return self.service.settings_service.updateVacation(userId= 'me', body= vacation_settings).execute()

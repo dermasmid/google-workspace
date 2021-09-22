@@ -30,8 +30,7 @@ ERRORS_TO_CATCH = (
 
 default_versions = {
     "drive": "v3",
-    "gmail": "v1",
-    "photoslibrary": "v1"
+    "gmail": "v1"
     }
 
 def get_creds_file(creds):
@@ -63,8 +62,7 @@ def get_default_scopes(api: str) -> List[str]:
     from .. import drive, gmail
     default_scopes = {
         "drive": drive.scopes.FULLACCESSDRIVESCOPE,
-        "gmail": gmail.scopes.FULLACCESSGMAILSCOPE,
-        "photoslibrary": 'https://www.googleapis.com/auth/photoslibrary'
+        "gmail": gmail.scopes.FULLACCESSGMAILSCOPE
         }
     return [default_scopes[api]]
 
@@ -108,7 +106,7 @@ def configure_error_handling():
         on_exception_callback= exception_callback
         )
 
-    def custom_execute(self, *args, **kwargs):
+    def custom_execute(self: HttpRequest, *args, **kwargs):
         if getattr(self.http.credentials, 'threading', False):
             self.http = google_auth_httplib2.AuthorizedHttp(self.http.credentials, http=Http())
         try:
