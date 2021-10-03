@@ -35,7 +35,7 @@ class GoogleService(Resource):
         self.version = version or utils.default_versions[api]
         self.api = api
         self.workdir = Path(workdir or '.')
-        self.pickle_file = self.workdir / (session + '.pickle')
+        self.pickle_file = self.workdir / (self.session + '.pickle')
         self.is_authenticated = os.path.exists(self.pickle_file)
         utils.configure_error_handling()
         if service:
