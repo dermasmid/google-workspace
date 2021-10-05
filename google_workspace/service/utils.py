@@ -12,7 +12,7 @@ from wsgiref import simple_server
 
 import google_auth_httplib2
 import trython
-from googleapiclient import discovery
+from googleapiclient import discovery, discovery_cache
 from googleapiclient.errors import HttpError
 from googleapiclient.http import HttpRequest
 from httplib2 import Http
@@ -107,12 +107,20 @@ def configure_error_handling():
         )
 
     def custom_execute(self: HttpRequest, *args, **kwargs):
-        if getattr(self.http.credentials, 'threading', False):
+        is_google_workspace = getattr(self.http.credentials, 'is_google_workspace', False)
+        if is_google_workspace:
             self.http = google_auth_httplib2.AuthorizedHttp(self.http.credentials, http=Http())
         try:
             data = error_handled_execute(self, *args, **kwargs)
+        except HttpError as e:
+            # Tell the user which scopes are required
+            if e.reason == 'Request had insufficient authentication scopes.' and is_google_workspace:
+                content = json.loads(discovery_cache.get_static_doc(self.http.credentials.api, self.http.credentials.version))
+                scopes = get_scopes_by_method_id(self.methodId, content)
+                print(f'Error: `{self.methodId}` requires one of these scopes: {scopes} , but you have {self.http.credentials.authenticated_scopes}')
+            raise
         finally:
-            if getattr(self.http.credentials, 'threading', False):
+            if is_google_workspace and self.http.credentials.threading:
                 # close connection when using threads, because on the next
                 # call we will be creating a new AuthorizedHttp anyway
                 self.http.close()
@@ -204,3 +212,14 @@ def get_available_allowed_port(client_config: dict, server_host: str) -> int:
             return port
     raise ValueError("""There's no availabl ports that are allowed to be used by your app, please update your
             allowed redirect URIs in the cloud console and update the client secrets json file""")
+
+
+def get_scopes_by_method_id(method_id: str, discovery_document: dict) -> list:
+    items = method_id.split('.')
+    del items[0]
+    for item in items:
+        if not item == items[-1]:
+            discovery_document = discovery_document['resources'][item]
+        else:
+            method = discovery_document['methods'][item]
+    return method['scopes']

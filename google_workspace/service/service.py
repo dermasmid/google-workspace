@@ -54,17 +54,14 @@ class GoogleService(Resource):
 
         elif creds:
             if isinstance(creds, Credentials):
-                service = self._get_service_args(creds= creds)
-                super().__init__(**service)
-                self._make_special_services()
-                self.authenticated_scopes = creds.scopes
+                self._init_service(creds)
             else:
                 raise ValueError("Invalid argument")
 
 
         else:
             if self.is_authenticated:
-                self._get_service()
+                self._init_service()
             else:
                 client_secrets = self.workdir / utils.get_creds_file(client_secrets)
                 with open(client_secrets, 'r') as f:
@@ -81,7 +78,7 @@ class GoogleService(Resource):
         self.flow = InstalledAppFlow.from_client_config(self.client_config, self.scopes)
         creds = self.flow.run_local_server(port= server_port)
         self._save_creds(creds)
-        self._get_service()
+        self._init_service()
         return self
 
 
@@ -132,7 +129,7 @@ class GoogleService(Resource):
         self.flow.fetch_token(code= code, authorization_response= authorization_response)
         creds = self.flow.credentials
         self._save_creds(creds)
-        self._get_service()
+        self._init_service()
         return self
 
 
@@ -188,17 +185,7 @@ class GoogleService(Resource):
         return self.is_authenticated
 
 
-    def _get_service(self):
-        with open(self.pickle_file, 'rb') as f:
-            creds = pickle.load(f)
-            try:
-                self.service_state = pickle.load(f)
-            except EOFError:
-                self.service_state = {self.api: {}}
-        if not creds or not creds.valid:
-            request = Request()
-            creds.refresh(request)
-            request.session.close()
+    def _get_service(self, creds: Credentials):
         service = self._get_service_args(creds)
         super().__init__(**service)
         self._make_special_services()
@@ -228,7 +215,36 @@ class GoogleService(Resource):
             self.files_service: Resource = self.files() # pylint: disable=no-member
 
 
-    def _save_creds(self, creds):
+    def _save_creds(self, creds: Credentials):
         with open(self.pickle_file, 'wb') as token:
             pickle.dump(creds, token)
         self.is_authenticated = True
+
+
+    def _get_creds(self):
+        with open(self.pickle_file, 'rb') as f:
+            creds = pickle.load(f)
+            try:
+                self.service_state = pickle.load(f)
+            except EOFError:
+                self.service_state = {self.api: {}}
+        if not creds or not creds.valid:
+            request = Request()
+            creds.refresh(request)
+            request.session.close()
+        return creds
+
+
+    def _init_service(self, creds: Credentials = None):
+        if not creds:
+            creds = self._get_creds()
+        self._get_service(creds)
+        self._post_auth_setup()
+
+
+    def _post_auth_setup(self):
+        self._http.credentials.is_google_workspace = True
+        self._http.credentials.threading = False
+        self._http.credentials.authenticated_scopes = self.authenticated_scopes
+        self._http.credentials.api = self.api
+        self._http.credentials.version = self.version

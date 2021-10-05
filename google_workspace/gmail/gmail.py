@@ -7,6 +7,8 @@ from queue import Empty, Queue
 from threading import Event, Thread
 from typing import Any, Callable, Generator, List, Type, Union
 
+from googleapiclient.errors import HttpError
+
 from .. import service as service_module
 from . import helper, message, utils
 from .handlers import BaseHandler, MessageAddedHandler
@@ -62,7 +64,11 @@ class GmailClient:
 
 
     def get_user(self):
-        self.user = self.service.users_service.getProfile(userId= "me").execute()
+        try:
+            self.user = self.service.users_service.getProfile(userId= "me").execute()
+        except HttpError:
+            # Not sufficient permissions.
+            self.user = {}
         self.history_id = self.user.get("historyId")
 
 
@@ -181,8 +187,9 @@ class GmailClient:
                 oldest_history_id = queue_items[0]['history_id']
             else:
                 oldest_history_id = self.history_id
-            self.service.update_service_state('history_id', int(oldest_history_id) - 1)
-            self.service.save_service_state()
+            if not oldest_history_id is None:
+                self.service.update_service_state('history_id', int(oldest_history_id) - 1)
+                self.service.save_service_state()
 
         # Stop the workers.
         for _ in range(self.workers):
