@@ -61,8 +61,8 @@ def get_creds_file(creds):
 def get_default_scopes(api: str) -> List[str]:
     from .. import drive, gmail
     default_scopes = {
-        "drive": drive.scopes.FULLACCESSDRIVESCOPE,
-        "gmail": gmail.scopes.FULLACCESSGMAILSCOPE
+        "drive": drive.scopes.FULL_ACCESS_DRIVE_SCOPE,
+        "gmail": gmail.scopes.FULL_ACCESS_GMAIL_SCOPE
         }
     return [default_scopes[api]]
 
