@@ -373,7 +373,7 @@ def create_replied_message(message, text_body: str, html_body: str) -> Tuple[str
         text_email = '\n'.join(map(lambda line: line.lstrip(), text_email.split('\n')))
     else:
         text_email = None
-    
+
     if html_body:
         html_email = """
         {html_body}<br><div class="gmail_quote"><div dir="ltr" class="gmail_attr">On {date} {from_name} &lt;<a
@@ -413,8 +413,7 @@ def handle_update(gmail_client: 'gmail.GmailClient', full_update):
             if e._get_reason().strip() == 'Requested entity was not found.':
                 # We got an update for a draft, but was deleted (sent out) or updated since.
                 continue
-            else:
-                raise e
+            raise e
 
         for handler in gmail_client.handlers[update_type]:
             if handler.check(message):
