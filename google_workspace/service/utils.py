@@ -108,7 +108,7 @@ def configure_error_handling():
 
     def custom_execute(self: HttpRequest, *args, **kwargs):
         is_google_workspace = getattr(self.http.credentials, 'is_google_workspace', False)
-        if is_google_workspace:
+        if is_google_workspace and self.http.credentials.threading:
             self.http = google_auth_httplib2.AuthorizedHttp(self.http.credentials, http=Http())
         try:
             data = error_handled_execute(self, *args, **kwargs)
