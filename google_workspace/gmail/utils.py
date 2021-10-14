@@ -14,12 +14,12 @@ from email.mime.text import MIMEText
 from email.utils import getaddresses
 from html.parser import HTMLParser
 from mimetypes import guess_type
-from typing import Tuple, Union
+from typing import Literal, Tuple, Union
 
 import magic
 from googleapiclient.errors import HttpError
 
-from . import gmail
+from . import gmail, message
 
 handler_update_key_to_type_map = {
     'messagesAdded': 'messageAdded',
@@ -27,6 +27,15 @@ handler_update_key_to_type_map = {
     'labelsAdded': 'labelAdded',
     'labelsRemoved': 'labelRemoved'
 }
+
+
+def get_message_class(message_format: Literal['minimal', 'full', 'raw', 'metadata'] = 'raw'):
+    return {
+        'minimal': message.MessageMinimal,
+        'full': message.Message.from_full_format,
+        'raw': message.Message,
+        'metadata': message.MessageMetadata
+        }[message_format]
 
 
 _not_important_tags = ('title', 'style', 'script')
@@ -429,3 +438,33 @@ def add_labels_to_handler_config(labels: list, config: Union[list, None]) -> Uni
     else:
         config = None
     return config
+
+
+def full_format_to_message_object(parts: Union[dict, list], message: MIMEBase = None) -> MIMEBase:
+    if not message:
+        # This is the root part
+        maintype, subtype = parts['mimeType'].split('/', 1)
+        message = MIMEBase(maintype, subtype)
+        for header in parts['headers']:
+            message[header['name']] = header['value']
+        if message.get_content_maintype() == 'multipart':
+            full_format_to_message_object(parts['parts'], message)
+        else:
+            message.set_payload(parts['body'].get('data'))
+    else:
+        for part in parts:
+            if part['mimeType'].split('/')[0] == 'multipart':
+                message_part = MIMEMultipart("mixed")
+                full_format_to_message_object(part['parts'], message_part)
+                message.attach(message_part)
+            else:
+                maintype, subtype = part['mimeType'].split('/', 1)
+                message_part = MIMEBase(maintype, subtype)
+                for header in part['headers']:
+                    message_part[header['name']] = header['value']
+                # Dispite the Content-Transfer-Encoding, it seems like everything is encoded
+                # in b64
+                data = base64.urlsafe_b64decode(part['body'].get('data', '')).decode()
+                message_part.set_payload(data)
+                message.attach(message_part)
+    return message

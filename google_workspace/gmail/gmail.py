@@ -5,12 +5,12 @@ import time
 from datetime import date
 from queue import Empty, Queue
 from threading import Event, Thread
-from typing import Any, Callable, Generator, List, Type, Union
+from typing import Any, Callable, Generator, List, Literal, Type, Union
 
 from googleapiclient.errors import HttpError
 
 from .. import service as service_module
-from . import helper, message, utils
+from . import helper, message, thread, utils
 from .handlers import BaseHandler, MessageAddedHandler
 from .label import Label, LabelShow, MessageShow
 
@@ -99,13 +99,12 @@ class GmailClient:
         before: date = None,
         label_name: str = None,
         include_spam_and_trash: bool = False,
-        metadata_only: bool = False,
+        message_format: Literal['minimal', 'full', 'raw', 'metadata'] = 'raw',
         batch: bool = True,
         limit: int = None
-        ) -> Generator[Union[message.Message, message.MessageMetadata], None, None]:
+        ) -> Generator[Type['message.BaseMessage'], None, None]:
 
         query = utils.gmail_query_maker(seen, from_, to, subject, after, before, label_name)
-
         label_ids = utils.get_proper_label_ids(label_ids)
 
         messages_generator = helper.get_messages_generator(
@@ -113,20 +112,64 @@ class GmailClient:
             label_ids,
             query,
             include_spam_and_trash,
-            metadata_only,
+            message_format,
             batch,
             limit
             )
         return messages_generator
 
 
-    def get_message_by_id(self, message_id: str, metadata_only: bool = False) -> Union[message.Message, message.MessageMetadata]:
-        if metadata_only:
-            message_class, message_format = message.MessageMetadata, 'metadata'
-        else:
-            message_class, message_format = message.Message, 'raw'
+    def get_message_by_id(
+        self,
+        message_id: str,
+        message_format: Literal['minimal', 'full', 'raw', 'metadata'] = 'raw',
+        ) -> Type['message.BaseMessage']:
+
+        message_class = utils.get_message_class(message_format)
         raw_message = helper.get_message_data(self.service, message_id, message_format)
         return message_class(self, raw_message)
+
+
+    def get_threads(
+        self,
+        label_ids: list or str = None,
+        seen: bool = None,
+        from_: str = None,
+        to: list = None,
+        subject: str = None,
+        after: date = None,
+        before: date = None,
+        label_name: str = None,
+        include_spam_and_trash: bool = False,
+        message_format: Literal['minimal', 'full', 'metadata'] = 'full',
+        batch: bool = True,
+        limit: int = None
+        ) -> Generator['thread.Thread', None, None]:
+
+        query = utils.gmail_query_maker(seen, from_, to, subject, after, before, label_name)
+        label_ids = utils.get_proper_label_ids(label_ids)
+
+        threads_generator = helper.get_messages_generator(
+            self,
+            label_ids,
+            query,
+            include_spam_and_trash,
+            message_format,
+            batch,
+            limit,
+            True
+            )
+        return threads_generator
+
+
+    def get_thread_by_id(
+        self,
+        message_id: str,
+        message_format: Literal['minimal', 'full', 'metadata'] = 'full',
+        ) -> 'thread.Thread':
+
+        raw_thread = helper.get_message_data(self.service, message_id, message_format, True)
+        return thread.Thread(self, raw_thread, message_format)
 
 
     def add_handler(self, handler: Type[BaseHandler]):
@@ -322,6 +365,26 @@ class GmailClient:
 
     def get_filters(self):
         return self.service.settings_service.filters().list(userId= 'me').execute()
+
+
+    def delete_thread(self, thread_id: str):
+        return self.service.threads_service.delete(userId= 'me', id= thread_id).execute()
+
+
+    def trash_thread(self, thread_id: str):
+        return self.service.threads_service.trash(userId= 'me', id= thread_id).execute()
+
+
+    def untarsh_thread(self, thread_id: str):
+        return self.service.threads_service.untrash(userId= 'me', id= thread_id).execute()
+
+
+    def add_labels_to_thread(self, thread_id: str, label_ids: Union[list, str]) -> dict:
+        return self.service.threads_service.modify(userId= 'me', id= thread_id, body= {'addLabelIds': utils.get_proper_label_ids(label_ids)}).execute()
+
+
+    def remove_labels_from_thread(self, thread_id: str, label_ids: Union[list, str]) -> dict:
+        return self.service.threads_service.modify(userId= 'me', id= thread_id, body= {'removeLabelIds': utils.get_proper_label_ids(label_ids)}).execute()
 
 
     def delete_message(self, message_id: str):

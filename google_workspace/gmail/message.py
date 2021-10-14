@@ -37,7 +37,7 @@ class BaseMessage():
 
 
     def trash(self):
-        return self.gmail_client.trash_message()
+        return self.gmail_client.trash_message(self.gmail_id)
 
 
     def untrash(self):
@@ -58,7 +58,10 @@ class Message(BaseMessage):
 
     def __init__(self, gmail_client: "gmail.GmailClient", message_data: dict):
         super().__init__(gmail_client, message_data)
-        self.process_message()
+        if message_data.get('raw'):
+            self.message_format = 'raw'
+            self.email_object = utils.get_email_object(self.message_data['raw'])
+            self.process_message()
 
 
     def __str__(self):
@@ -82,11 +85,13 @@ class Message(BaseMessage):
                 if self.is_chat_message:
                     data = part.get_payload()
                 else:
-                    data = part.get_payload(decode= True)
-                    try:
-                        data = data.decode(encoding or 'utf-8', "ignore")
-                    except LookupError:
-                        data = data.decode('utf-8', "ignore")
+                    data = part.get_payload(decode= self.message_format == 'raw')
+                    # If format is full then the payload is the ready text.
+                    if self.message_format == 'raw':
+                        try:
+                            data = data.decode(encoding or 'utf-8', "ignore")
+                        except LookupError:
+                            data = data.decode('utf-8', "ignore")
                 setattr(self, text_parts[mimetype], data)
 
             else:
@@ -126,8 +131,16 @@ class Message(BaseMessage):
         self.gmail_client.send_message_from_message_obj(new_message, to)
 
 
+    @classmethod
+    def from_full_format(cls, gmail_client: "gmail.GmailClient", message_data: dict):
+        self = cls(gmail_client, message_data)
+        self.message_format = 'full'
+        self.email_object = utils.full_format_to_message_object(message_data['payload'])
+        self.process_message()
+        return self
+
+
     def process_message(self):
-        self.email_object = utils.get_email_object(self.message_data['raw'])
         self.is_seen = not "UNREAD" in self.label_ids
         self.is_chat_message = "CHAT" in self.label_ids
         self.in_reply_to = self.email_object['In-Reply-To']
@@ -155,7 +168,7 @@ class Message(BaseMessage):
         self._get_parts()
         self.html_text = utils.get_html_text(self.html)
         self.has_attachments = any(not attachment.is_inline for attachment in self.attachments) # this is if you what to know if the message has a real attachment
-  
+
 
 
 
@@ -189,11 +202,27 @@ class MessageMetadata(BaseMessage):
 
 
     def get_full_message(self) -> Message:
-        return self.gmail_client.get_message_by_id(self.gmail_id, metadata_only= False)
+        return self.gmail_client.get_message_by_id(self.gmail_id, message_format= 'raw')
 
 
     def __str__(self):
         return f"Message From: {self.from_}, Subject: {self.subject}, Date: {self.date}"
+
+
+
+
+class MessageMinimal(BaseMessage):
+
+    def __init__(self, gmail_client: "gmail.GmailClient", message_data: dict) -> None:
+        super().__init__(gmail_client, message_data)
+
+
+    def get_full_message(self) -> Message:
+        return self.gmail_client.get_message_by_id(self.gmail_id, message_format= 'raw')
+
+
+    def __str__(self) -> str:
+        return self.gmail_id
 
 
 

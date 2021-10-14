@@ -1,34 +1,58 @@
-from typing import Generator, Literal, Union
+from typing import Generator, Literal, Type, Union
 
 import trython
 from googleapiclient.errors import HttpError
 
 from .. import service
-from . import gmail, message
+from . import gmail, message, thread, utils
 
 
-def get_messages(service, next_page_token, label_ids, query, include_spam_and_trash):
+def get_messages(service, next_page_token, label_ids, query, include_spam_and_trash, threads: bool = False):
+    if not threads:
+        endpoint = service.message_service.list
+        items_key = 'messages'
+    else:
+        endpoint = service.threads_service.list
+        items_key = 'threads'
     kwargs = {'userId': 'me', 'pageToken': next_page_token, 'q': query, 'includeSpamTrash': include_spam_and_trash}
     if label_ids:
         kwargs['labelIds'] = label_ids
-    data = service.message_service.list(**kwargs).execute()
-    messages = iter(data.get("messages", []))
+    data = endpoint(**kwargs).execute()
+    messages = iter(data.get(items_key, []))
     next_page_token = data.get("nextPageToken", None)
     return messages, next_page_token
 
 
 @trython.wrap(time_to_sleep=0, errors_to_catch=(HttpError, ), on_exception_callback=service.utils.exception_callback)
-def get_message_data_batch(service, message_ids: str, format: Literal['raw', 'metadata'] = 'raw'):
+def get_messages_data_batch(
+    service,
+    message_ids: str,
+    message_format: Literal['minimal', 'full', 'raw', 'metadata'] = 'raw',
+    threads: bool = False
+    ):
+    if not threads:
+        endpoint = service.message_service.get
+    else:
+        endpoint = service.threads_service.get
     batch = service.new_batch_http_request()
     for message_id in message_ids:
-        batch.add(service.message_service.get(userId = "me", id= message_id, format= format))
+        batch.add(endpoint(userId = "me", id= message_id, format= message_format))
     batch.execute()
     messages = list(batch._requests[request_id].postproc(*batch._responses[request_id]) for request_id in batch._order)
     return messages
 
 
-def get_message_data(service, message_id: str, format: Literal['raw', 'metadata'] = 'raw'):
-    raw_message = service.message_service.get(userId = "me", id= message_id, format= format).execute()
+def get_message_data(
+    service,
+    message_id: str,
+    message_format: Literal['minimal', 'full', 'raw', 'metadata'] = 'raw',
+    threads: bool = False
+    ):
+    if not threads:
+        endpoint = service.message_service.get
+    else:
+        endpoint = service.threads_service.get
+    raw_message = endpoint(userId = "me", id= message_id, format= message_format).execute()
     return raw_message
 
 
@@ -66,18 +90,22 @@ def get_messages_generator(
     label_ids: list,
     query: str,
     include_spam_and_trash: bool,
-    metadata_only: bool,
+    message_format: Literal['minimal', 'full', 'raw', 'metadata'],
     batch: bool,
-    limit: Union[int, None]
-    ) -> Generator[Union[message.Message, message.MessageMetadata], None, None]:
+    limit: Union[int, None],
+    threads: bool = False
+    ) -> Generator[Type['message.BaseMessage'], None, None]:
 
-    if metadata_only:
-        message_class, message_format = message.MessageMetadata, 'metadata'
-    else:
-        message_class, message_format = message.Message, 'raw'
+    message_class = utils.get_message_class(message_format)
+    message_kwargs = {}
+
+    if threads:
+        message_class = thread.Thread
+        message_kwargs['message_format'] = message_format
 
 
-    messages, next_page_token = get_messages(gmail_client.service, None, label_ids, query, include_spam_and_trash)
+    messages, next_page_token = get_messages(
+        gmail_client.service, None, label_ids, query, include_spam_and_trash, threads= threads)
     counter = 0
 
     if batch:
@@ -92,14 +120,16 @@ def get_messages_generator(
                         raise StopIteration
 
             except StopIteration:
-                messages_data = get_message_data_batch(gmail_client.service, message_ids, message_format)
+                messages_data = get_messages_data_batch(
+                    gmail_client.service, message_ids, message_format, threads= threads)
                 for message_data in messages_data:
                     yield message_class(gmail_client, message_data)
                 message_ids = []
                 if not next_page_token or counter == limit:
                     break
 
-                messages, next_page_token = get_messages(gmail_client.service, next_page_token, label_ids, query, include_spam_and_trash)
+                messages, next_page_token = get_messages(
+                    gmail_client.service, next_page_token, label_ids, query, include_spam_and_trash, threads= threads)
                 continue
 
     else:
@@ -111,11 +141,14 @@ def get_messages_generator(
                 if not next_page_token:
                     break
 
-                messages, next_page_token = get_messages(gmail_client.service, next_page_token, label_ids, query, include_spam_and_trash)
+                messages, next_page_token = get_messages(
+                    gmail_client.service, next_page_token, label_ids, query, include_spam_and_trash, threads= threads)
                 continue
 
             else:
-                yield message_class(gmail_client, get_message_data(gmail_client.service, message_id, message_format))
+                yield message_class(
+                    gmail_client, get_message_data(gmail_client.service, message_id,
+                    message_format, threads= threads), **message_kwargs)
                 if limit:
                     counter += 1
                     if counter == limit:
