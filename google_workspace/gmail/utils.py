@@ -509,3 +509,16 @@ def full_format_to_message_object(
                 message_part.set_payload(data)
                 message.attach(message_part)
     return message
+
+
+def get_message_format_from_message(
+    message_obj: "message.BaseMessage", allow_raw: bool = True
+) -> str:
+    if isinstance(message_obj, message.MessageMetadata):
+        return "metadata"
+    if isinstance(message_obj, message.MessageMinimal):
+        return "minimal"
+    if isinstance(message_obj, message.Message):
+        if message_obj.message_data.get("raw") and allow_raw:
+            return "raw"
+        return "full"

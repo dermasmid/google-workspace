@@ -1,7 +1,7 @@
 from copy import copy
-from typing import Union
+from typing import Union, Literal
 
-from . import gmail, utils
+from . import gmail, utils, thread
 
 
 class BaseMessage:
@@ -41,6 +41,15 @@ class BaseMessage:
             ).get(header)
         elif isinstance(self, Message):
             return self.email_object.get(header)  # pylint: disable=no-member
+
+    def get_thread(
+        self, message_format: Literal["minimal", "full", "metadata"] = None
+    ) -> "thread.Thread":
+        if not message_format:
+            message_format = utils.get_message_format_from_message(
+                self, allow_raw=False
+            )
+        return self.gmail_client.get_thread_by_id(self.thread_id, message_format)
 
 
 class Message(BaseMessage):
@@ -148,9 +157,10 @@ class Message(BaseMessage):
         self.attachments = []
         self._get_parts()
         self.html_text = utils.get_html_text(self.html)
+        # This is if you what to know if the message has a real attachment
         self.has_attachments = any(
             not attachment.is_inline for attachment in self.attachments
-        )  # this is if you what to know if the message has a real attachment
+        )
 
 
 class MessageMetadata(BaseMessage):

@@ -154,12 +154,12 @@ class GmailClient:
 
     def get_thread_by_id(
         self,
-        message_id: str,
+        thread_id: str,
         message_format: Literal["minimal", "full", "metadata"] = "full",
     ) -> "thread.Thread":
 
         raw_thread = helper.get_message_data(
-            self.service, message_id, message_format, True
+            self.service, thread_id, message_format, True
         )
         return thread.Thread(self, raw_thread, message_format)
 
