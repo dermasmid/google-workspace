@@ -16,22 +16,20 @@ from .label import Label, LabelShow, MessageShow
 
 
 class GmailClient:
-
-
     def __init__(
         self,
-        service: Union['service_module.GoogleService', str] = None,
+        service: Union["service_module.GoogleService", str] = None,
         workers: int = 4,
         save_state: bool = False,
-        update_interval: int = 1
-        ):
+        update_interval: int = 1,
+    ):
         """Create a Gmail client to interact with the Gmail API.
 
         Args:
-            service (Union['service_module.GoogleService', str], optional): Pass either a GoogleService 
+            service (Union['service_module.GoogleService', str], optional): Pass either a GoogleService
         instance or the GoogleService session name. Defaults to None.
             workers (int, optional): Number of threads to use when handling updates. Defaults to 4.
-            save_state (bool, optional): whether or not to save the sate when the application 
+            save_state (bool, optional): whether or not to save the sate when the application
         stops, if set to True and the application is then restarted and save_state is still set to True,
         the app will go back in time to handle the updated that happend while the app was offline.
         See the limitations here: https://developers.google.com/gmail/api/guides/sync#limitations. Defaults to False.
@@ -42,51 +40,48 @@ class GmailClient:
 
         else:
             if service:
-                self.service = service_module.GoogleService(api= "gmail", session= service)
+                self.service = service_module.GoogleService(
+                    api="gmail", session=service
+                )
         self.workers = workers
         self.save_state = save_state
         self.update_interval = update_interval
         utils.add_encoding_aliases()
         self.handlers = {}
-        self._handlers_config = {'labels': [], 'labels_per_type': {}}
+        self._handlers_config = {"labels": [], "labels_per_type": {}}
         self.updates_queue = Queue()
         self.stop_request = Event()
         if self.service.is_authenticated:
             self.get_user()
 
-
     def __len__(self):
         return self.user.get("messagesTotal")
 
-
     def __str__(self):
-        return f"email: {self.email_address}, scopes: {self.service.authenticated_scopes}"
-
+        return (
+            f"email: {self.email_address}, scopes: {self.service.authenticated_scopes}"
+        )
 
     def get_user(self):
         try:
-            self.user = self.service.users_service.getProfile(userId= "me").execute()
+            self.user = self.service.users_service.getProfile(userId="me").execute()
         except HttpError:
             # Not sufficient permissions.
             self.user = {}
         self.history_id = self.user.get("historyId")
 
-
     @property
     def sender_name(self):
-        return self.user.get('sender_name')
-
+        return self.user.get("sender_name")
 
     @sender_name.setter
     def sender_name(self, sender_name):
         sender_name = utils.encode_if_not_english(sender_name)
-        self.user['sender_name'] = sender_name
-
+        self.user["sender_name"] = sender_name
 
     @property
     def email_address(self):
         return self.user.get("emailAddress")
-
 
     def get_messages(
         self,
@@ -99,36 +94,30 @@ class GmailClient:
         before: date = None,
         label_name: str = None,
         include_spam_and_trash: bool = False,
-        message_format: Literal['minimal', 'full', 'raw', 'metadata'] = 'raw',
+        message_format: Literal["minimal", "full", "raw", "metadata"] = "raw",
         batch: bool = True,
-        limit: int = None
-        ) -> Generator[Type['message.BaseMessage'], None, None]:
+        limit: int = None,
+    ) -> Generator[Type["message.BaseMessage"], None, None]:
 
-        query = utils.gmail_query_maker(seen, from_, to, subject, after, before, label_name)
+        query = utils.gmail_query_maker(
+            seen, from_, to, subject, after, before, label_name
+        )
         label_ids = utils.get_proper_label_ids(label_ids)
 
         messages_generator = helper.get_messages_generator(
-            self,
-            label_ids,
-            query,
-            include_spam_and_trash,
-            message_format,
-            batch,
-            limit
-            )
+            self, label_ids, query, include_spam_and_trash, message_format, batch, limit
+        )
         return messages_generator
-
 
     def get_message_by_id(
         self,
         message_id: str,
-        message_format: Literal['minimal', 'full', 'raw', 'metadata'] = 'raw',
-        ) -> Type['message.BaseMessage']:
+        message_format: Literal["minimal", "full", "raw", "metadata"] = "raw",
+    ) -> Type["message.BaseMessage"]:
 
         message_class = utils.get_message_class(message_format)
         raw_message = helper.get_message_data(self.service, message_id, message_format)
         return message_class(self, raw_message)
-
 
     def get_threads(
         self,
@@ -141,12 +130,14 @@ class GmailClient:
         before: date = None,
         label_name: str = None,
         include_spam_and_trash: bool = False,
-        message_format: Literal['minimal', 'full', 'metadata'] = 'full',
+        message_format: Literal["minimal", "full", "metadata"] = "full",
         batch: bool = True,
-        limit: int = None
-        ) -> Generator['thread.Thread', None, None]:
+        limit: int = None,
+    ) -> Generator["thread.Thread", None, None]:
 
-        query = utils.gmail_query_maker(seen, from_, to, subject, after, before, label_name)
+        query = utils.gmail_query_maker(
+            seen, from_, to, subject, after, before, label_name
+        )
         label_ids = utils.get_proper_label_ids(label_ids)
 
         threads_generator = helper.get_messages_generator(
@@ -157,30 +148,38 @@ class GmailClient:
             message_format,
             batch,
             limit,
-            True
-            )
+            True,
+        )
         return threads_generator
-
 
     def get_thread_by_id(
         self,
         message_id: str,
-        message_format: Literal['minimal', 'full', 'metadata'] = 'full',
-        ) -> 'thread.Thread':
+        message_format: Literal["minimal", "full", "metadata"] = "full",
+    ) -> "thread.Thread":
 
-        raw_thread = helper.get_message_data(self.service, message_id, message_format, True)
+        raw_thread = helper.get_message_data(
+            self.service, message_id, message_format, True
+        )
         return thread.Thread(self, raw_thread, message_format)
-
 
     def add_handler(self, handler: Type[BaseHandler]):
         for history_type in handler.history_types:
-            self.handlers[history_type] = self.handlers.get(history_type, []) + [handler]
-            self._handlers_config['labels_per_type'][history_type] = self._handlers_config['labels_per_type'].get(history_type, [])
-            self._handlers_config['labels_per_type'][history_type] = utils.add_labels_to_handler_config(
-                handler.labels, self._handlers_config['labels_per_type'][history_type])
+            self.handlers[history_type] = self.handlers.get(history_type, []) + [
+                handler
+            ]
+            self._handlers_config["labels_per_type"][
+                history_type
+            ] = self._handlers_config["labels_per_type"].get(history_type, [])
+            self._handlers_config["labels_per_type"][
+                history_type
+            ] = utils.add_labels_to_handler_config(
+                handler.labels, self._handlers_config["labels_per_type"][history_type]
+            )
 
-        self._handlers_config['labels'] = utils.add_labels_to_handler_config(handler.labels, self._handlers_config['labels'])
-
+        self._handlers_config["labels"] = utils.add_labels_to_handler_config(
+            handler.labels, self._handlers_config["labels"]
+        )
 
     def update_worker(self):
         while True:
@@ -190,30 +189,36 @@ class GmailClient:
 
             utils.handle_update(self, full_update)
 
-
     def get_updates(self):
-        ''' This is the main function which looks for updates on the
+        """This is the main function which looks for updates on the
         account, and adds it to the queue.
-        '''
+        """
         if self.save_state:
-            self.history_id = self.service.get_service_state_value('history_id') or self.history_id
+            self.history_id = (
+                self.service.get_service_state_value("history_id") or self.history_id
+            )
         history_types = list(self.handlers.keys())
         # Determine which labels are to be handled, and if it's just
         # one, we can ask to api to only send us updates which matches
         # that label
-        labels_to_handle = self._handlers_config['labels']
-        label_id = labels_to_handle[0] if (not labels_to_handle is None and len(labels_to_handle) == 1) else None
+        labels_to_handle = self._handlers_config["labels"]
+        label_id = (
+            labels_to_handle[0]
+            if (not labels_to_handle is None and len(labels_to_handle) == 1)
+            else None
+        )
         # If there's no handler's - quit.
         while history_types:
-            data = helper.get_history_data(self.service, self.history_id, history_types, label_id)
-            self.history_id = data['historyId']
-            for history in data.get('history', []):
+            data = helper.get_history_data(
+                self.service, self.history_id, history_types, label_id
+            )
+            self.history_id = data["historyId"]
+            for history in data.get("history", []):
                 if len(history) == 3:
                     self.updates_queue.put(utils.format_update(history))
             if self.stop_request.is_set():
                 break
             time.sleep(self.update_interval)
-
 
     def _handle_stop(self):
         if not self.save_state:
@@ -227,17 +232,18 @@ class GmailClient:
                 except Empty:
                     break
             if queue_items:
-                oldest_history_id = queue_items[0]['history_id']
+                oldest_history_id = queue_items[0]["history_id"]
             else:
                 oldest_history_id = self.history_id
             if not oldest_history_id is None:
-                self.service.update_service_state('history_id', int(oldest_history_id) - 1)
+                self.service.update_service_state(
+                    "history_id", int(oldest_history_id) - 1
+                )
                 self.service.save_service_state()
 
         # Stop the workers.
         for _ in range(self.workers):
             self.updates_queue.put(None)
-
 
     def run(self):
         self.service.make_thread_safe()
@@ -255,18 +261,15 @@ class GmailClient:
         finally:
             self._handle_stop()
 
-
-    def stop(self, signum= None, frame= None):
+    def stop(self, signum=None, frame=None):
         self.stop_request.set()
-
 
     def on_message(
         self,
-        func: Callable[[Type['message.BaseMessage']], Any] = None,
-        labels: Union[list, str] = 'inbox',
-        filters: List[Callable[[Type['message.BaseMessage']], bool]] = None
-        ):
-
+        func: Callable[[Type["message.BaseMessage"]], Any] = None,
+        labels: Union[list, str] = "inbox",
+        filters: List[Callable[[Type["message.BaseMessage"]], bool]] = None,
+    ):
         @functools.wraps(func)
         def decorator(func):
             self.add_handler(MessageAddedHandler(func, labels, filters))
@@ -276,11 +279,10 @@ class GmailClient:
             return decorator(func)
         return decorator
 
-
     def send_message(
         self,
         to: list or str = None,
-        subject: str = "", 
+        subject: str = "",
         text: str = None,
         html: str = None,
         attachments: list = [],
@@ -289,8 +291,8 @@ class GmailClient:
         references: str = None,
         in_reply_to: str = None,
         thread_id: str = None,
-        headers: dict = None
-        ) -> dict:
+        headers: dict = None,
+    ) -> dict:
 
         message = utils.make_message(
             self.email_address,
@@ -304,183 +306,186 @@ class GmailClient:
             attachments,
             references,
             in_reply_to,
-            headers
-            )
+            headers,
+        )
         b64 = base64.urlsafe_b64encode(message).decode()
-        body = {'raw': b64}
+        body = {"raw": b64}
         if thread_id:
             body["threadId"] = thread_id
-        data = self.service.messages_service.send(userId= 'me', body= body).execute()
+        data = self.service.messages_service.send(userId="me", body=body).execute()
         return data
-
 
     def send_message_from_message_obj(
         self,
-        message_obj: 'message.BaseMessage',
+        message_obj: "message.BaseMessage",
         to: Union[list, str] = None,
         cc: Union[list, str] = None,
-        bcc: Union[list, str] = None
-        ) -> None:
+        bcc: Union[list, str] = None,
+    ) -> None:
         attachments = []
         for attachment in message_obj.attachments:
             attachments.append((attachment.payload, attachment.filename))
         self.send_message(
-            to= to,
-            subject= message_obj.subject,
-            text= message_obj.text,
-            html= message_obj.html,
-            attachments= attachments,
-            cc= cc,
-            bcc= bcc
+            to=to,
+            subject=message_obj.subject,
+            text=message_obj.text,
+            html=message_obj.html,
+            attachments=attachments,
+            cc=cc,
+            bcc=bcc,
         )
 
-
     def get_label_by_id(self, label_id: str):
-            label_data = helper.get_label_raw_data(self.service, label_id)
-            return Label(label_data, self)
-
+        label_data = helper.get_label_raw_data(self.service, label_id)
+        return Label(label_data, self)
 
     def get_lables(self):
         labels_data = helper.get_labels(self.service)
-        for label in labels_data['labels']:
-            yield self.get_label_by_id(label['id'])
-
+        for label in labels_data["labels"]:
+            yield self.get_label_by_id(label["id"])
 
     def create_label(
         self,
         name: str,
-        message_list_visibility = MessageShow(),
-        label_list_visibility = LabelShow(),
+        message_list_visibility=MessageShow(),
+        label_list_visibility=LabelShow(),
         background_color: str = None,
-        text_color: str = None
-        ):
+        text_color: str = None,
+    ):
 
-        body = utils.make_label_dict(name= name, message_list_visibility= message_list_visibility, label_list_visibility= label_list_visibility, 
-            background_color= background_color, text_color= text_color
-            )
+        body = utils.make_label_dict(
+            name=name,
+            message_list_visibility=message_list_visibility,
+            label_list_visibility=label_list_visibility,
+            background_color=background_color,
+            text_color=text_color,
+        )
 
-        data = self.service.labels_service.create(userId= 'me', body= body).execute()
-        return self.get_label_by_id(data['id'])
-
+        data = self.service.labels_service.create(userId="me", body=body).execute()
+        return self.get_label_by_id(data["id"])
 
     def get_filters(self):
-        return self.service.settings_service.filters().list(userId= 'me').execute()
-
+        return self.service.settings_service.filters().list(userId="me").execute()
 
     def delete_thread(self, thread_id: str):
-        return self.service.threads_service.delete(userId= 'me', id= thread_id).execute()
-
+        return self.service.threads_service.delete(userId="me", id=thread_id).execute()
 
     def trash_thread(self, thread_id: str):
-        return self.service.threads_service.trash(userId= 'me', id= thread_id).execute()
-
+        return self.service.threads_service.trash(userId="me", id=thread_id).execute()
 
     def untarsh_thread(self, thread_id: str):
-        return self.service.threads_service.untrash(userId= 'me', id= thread_id).execute()
-
+        return self.service.threads_service.untrash(userId="me", id=thread_id).execute()
 
     def add_labels_to_thread(self, thread_id: str, label_ids: Union[list, str]) -> dict:
-        return self.service.threads_service.modify(userId= 'me', id= thread_id, body= {'addLabelIds': utils.get_proper_label_ids(label_ids)}).execute()
+        return self.service.threads_service.modify(
+            userId="me",
+            id=thread_id,
+            body={"addLabelIds": utils.get_proper_label_ids(label_ids)},
+        ).execute()
 
-
-    def remove_labels_from_thread(self, thread_id: str, label_ids: Union[list, str]) -> dict:
-        return self.service.threads_service.modify(userId= 'me', id= thread_id, body= {'removeLabelIds': utils.get_proper_label_ids(label_ids)}).execute()
-
+    def remove_labels_from_thread(
+        self, thread_id: str, label_ids: Union[list, str]
+    ) -> dict:
+        return self.service.threads_service.modify(
+            userId="me",
+            id=thread_id,
+            body={"removeLabelIds": utils.get_proper_label_ids(label_ids)},
+        ).execute()
 
     def delete_message(self, message_id: str):
-        return self.service.messages_service.delete(userId= 'me', id= message_id).execute()
-
+        return self.service.messages_service.delete(
+            userId="me", id=message_id
+        ).execute()
 
     def trash_message(self, message_id: str):
-        return self.service.messages_service.trash(userId= 'me', id= message_id).execute()
-
+        return self.service.messages_service.trash(userId="me", id=message_id).execute()
 
     def untrash_message(self, message_id: str):
-        return self.service.messages_service.untrash(userId= 'me', id= message_id).execute()
+        return self.service.messages_service.untrash(
+            userId="me", id=message_id
+        ).execute()
 
+    def add_labels_to_message(
+        self, message_id: str, label_ids: Union[list, str]
+    ) -> dict:
+        return self.service.messages_service.modify(
+            userId="me",
+            id=message_id,
+            body={"addLabelIds": utils.get_proper_label_ids(label_ids)},
+        ).execute()
 
-    def add_labels_to_message(self, message_id: str, label_ids: Union[list, str]) -> dict:
-        return self.service.messages_service.modify(userId= 'me', id= message_id, body= {'addLabelIds': utils.get_proper_label_ids(label_ids)}).execute()
-
-
-    def remove_labels_from_message(self, message_id: str, label_ids: Union[list, str]) -> dict:
-        return self.service.messages_service.modify(userId= 'me', id= message_id, body= {'removeLabelIds': utils.get_proper_label_ids(label_ids)}).execute()
-
+    def remove_labels_from_message(
+        self, message_id: str, label_ids: Union[list, str]
+    ) -> dict:
+        return self.service.messages_service.modify(
+            userId="me",
+            id=message_id,
+            body={"removeLabelIds": utils.get_proper_label_ids(label_ids)},
+        ).execute()
 
     def mark_message_as_read(self, message_id: str):
-        return self.remove_labels_from_message(message_id, ['UNREAD'])
-
+        return self.remove_labels_from_message(message_id, ["UNREAD"])
 
     def mark_message_as_unread(self, message_id: str):
-        return self.add_labels_to_message(message_id, ['UNREAD'])
-
+        return self.add_labels_to_message(message_id, ["UNREAD"])
 
     def get_auto_forwarding_settings(self) -> dict:
-        return self.service.settings_service.getAutoForwarding(userId= 'me').execute()
-
+        return self.service.settings_service.getAutoForwarding(userId="me").execute()
 
     def get_imap_settings(self) -> dict:
-        return self.service.settings_service.getImap(userId= 'me').execute()
-
+        return self.service.settings_service.getImap(userId="me").execute()
 
     def get_language_settings(self) -> dict:
-        return self.service.settings_service.getLanguage(userId= 'me').execute()
-
+        return self.service.settings_service.getLanguage(userId="me").execute()
 
     def get_pop_settings(self) -> dict:
-        return self.service.settings_service.getPop(userId= 'me').execute()
-
+        return self.service.settings_service.getPop(userId="me").execute()
 
     def get_vacation_settings(self) -> dict:
-        return self.service.settings_service.getVacation(userId= 'me').execute()
-
+        return self.service.settings_service.getVacation(userId="me").execute()
 
     def update_auto_forwarding_settings(
-        self,
-        enabled: bool,
-        email_address: str,
-        disposition: str
-        ) -> dict:
+        self, enabled: bool, email_address: str, disposition: str
+    ) -> dict:
 
         auto_forwarding = {
-            'enabled': enabled,
-            'emailAddress': email_address,
-            'disposition': disposition
+            "enabled": enabled,
+            "emailAddress": email_address,
+            "disposition": disposition,
         }
-        return self.service.settings_service.updateAutoForwarding(userId= 'me', body= auto_forwarding).execute()
-
+        return self.service.settings_service.updateAutoForwarding(
+            userId="me", body=auto_forwarding
+        ).execute()
 
     def update_imap_settings(
         self,
         enabled: bool,
         auto_expunge: bool,
         expunge_behavior: str,
-        max_folder_size: int
-        ) -> dict:
+        max_folder_size: int,
+    ) -> dict:
 
         imap_settings = {
-            'enabled': enabled,
-            'autoExpunge': auto_expunge,
-            'expungeBehavior': expunge_behavior,
-            'maxFolderSize': max_folder_size
+            "enabled": enabled,
+            "autoExpunge": auto_expunge,
+            "expungeBehavior": expunge_behavior,
+            "maxFolderSize": max_folder_size,
         }
-        return self.service.settings_service.updateImap(userId= 'me', body= imap_settings).execute()
-
+        return self.service.settings_service.updateImap(
+            userId="me", body=imap_settings
+        ).execute()
 
     def update_language_settings(self, display_language: str) -> dict:
-        language_settings = {
-            'displayLanguage': display_language
-        }
-        return self.service.settings_service.updateLanguage(userId= 'me', body= language_settings).execute()
-
+        language_settings = {"displayLanguage": display_language}
+        return self.service.settings_service.updateLanguage(
+            userId="me", body=language_settings
+        ).execute()
 
     def update_pop_settings(self, access_window: str, disposition: str) -> dict:
-        pop_settings = {
-            'accessWindow': access_window,
-            'disposition': disposition
-        }
-        return self.service.settings_service.updateLanguage(userId= 'me', body= pop_settings).execute()
-
+        pop_settings = {"accessWindow": access_window, "disposition": disposition}
+        return self.service.settings_service.updateLanguage(
+            userId="me", body=pop_settings
+        ).execute()
 
     def update_vacation_settings(
         self,
@@ -490,18 +495,20 @@ class GmailClient:
         response_body_html: str,
         restrict_to_contacts: bool,
         restrict_to_domain: bool,
-        start_time: str, # TODO: take date object
-        end_time: str
-        ) -> dict:
+        start_time: str,  # TODO: take date object
+        end_time: str,
+    ) -> dict:
 
         vacation_settings = {
-            'enableAutoReply': enable_auto_reply,
-            'responseSubject': response_subject,
-            'responseBodyPlainText': response_body_plain_text,
-            'responseBodyHtml': response_body_html,
-            'restrictToContacts': restrict_to_contacts,
-            'restrictToDomain': restrict_to_domain,
-            'startTime': start_time,
-            'endTime': end_time
+            "enableAutoReply": enable_auto_reply,
+            "responseSubject": response_subject,
+            "responseBodyPlainText": response_body_plain_text,
+            "responseBodyHtml": response_body_html,
+            "restrictToContacts": restrict_to_contacts,
+            "restrictToDomain": restrict_to_domain,
+            "startTime": start_time,
+            "endTime": end_time,
         }
-        return self.service.settings_service.updateVacation(userId= 'me', body= vacation_settings).execute()
+        return self.service.settings_service.updateVacation(
+            userId="me", body=vacation_settings
+        ).execute()

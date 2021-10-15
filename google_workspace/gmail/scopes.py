@@ -1,11 +1,10 @@
-
-FULL_ACCESS_GMAIL_SCOPE = 'https://mail.google.com/'
-LABELS_GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.labels'
-SEND_GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.send'
-READ_ONLY_GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly'
-COMPOSE_GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.compose'
-INSERT_GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.insert'
-MODIFY_GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.modify'
-METADATA_GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.metadata'
-SETTINGS_BASIC_GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.settings.basic'
-SETTINGS_SHARING_GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.settings.sharing'
+FULL_ACCESS_GMAIL_SCOPE = "https://mail.google.com/"
+LABELS_GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.labels"
+SEND_GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.send"
+READ_ONLY_GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
+COMPOSE_GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.compose"
+INSERT_GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.insert"
+MODIFY_GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.modify"
+METADATA_GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.metadata"
+SETTINGS_BASIC_GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.settings.basic"
+SETTINGS_SHARING_GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.settings.sharing"
