@@ -310,7 +310,7 @@ class GmailClient:
         body = {'raw': b64}
         if thread_id:
             body["threadId"] = thread_id
-        data = self.service.message_service.send(userId= 'me', body= body).execute()
+        data = self.service.messages_service.send(userId= 'me', body= body).execute()
         return data
 
 
@@ -388,23 +388,23 @@ class GmailClient:
 
 
     def delete_message(self, message_id: str):
-        return self.service.message_service.delete(userId= 'me', id= message_id).execute()
+        return self.service.messages_service.delete(userId= 'me', id= message_id).execute()
 
 
     def trash_message(self, message_id: str):
-        return self.service.message_service.trash(userId= 'me', id= message_id).execute()
+        return self.service.messages_service.trash(userId= 'me', id= message_id).execute()
 
 
     def untrash_message(self, message_id: str):
-        return self.service.message_service.untrash(userId= 'me', id= message_id).execute()
+        return self.service.messages_service.untrash(userId= 'me', id= message_id).execute()
 
 
     def add_labels_to_message(self, message_id: str, label_ids: Union[list, str]) -> dict:
-        return self.service.message_service.modify(userId= 'me', id= message_id, body= {'addLabelIds': utils.get_proper_label_ids(label_ids)}).execute()
+        return self.service.messages_service.modify(userId= 'me', id= message_id, body= {'addLabelIds': utils.get_proper_label_ids(label_ids)}).execute()
 
 
     def remove_labels_from_message(self, message_id: str, label_ids: Union[list, str]) -> dict:
-        return self.service.message_service.modify(userId= 'me', id= message_id, body= {'removeLabelIds': utils.get_proper_label_ids(label_ids)}).execute()
+        return self.service.messages_service.modify(userId= 'me', id= message_id, body= {'removeLabelIds': utils.get_proper_label_ids(label_ids)}).execute()
 
 
     def mark_message_as_read(self, message_id: str):

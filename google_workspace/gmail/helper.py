@@ -9,7 +9,7 @@ from . import gmail, message, thread, utils
 
 def get_messages(service, next_page_token, label_ids, query, include_spam_and_trash, threads: bool = False):
     if not threads:
-        endpoint = service.message_service.list
+        endpoint = service.messages_service.list
         items_key = 'messages'
     else:
         endpoint = service.threads_service.list
@@ -31,7 +31,7 @@ def get_messages_data_batch(
     threads: bool = False
     ):
     if not threads:
-        endpoint = service.message_service.get
+        endpoint = service.messages_service.get
     else:
         endpoint = service.threads_service.get
     batch = service.new_batch_http_request()
@@ -49,7 +49,7 @@ def get_message_data(
     threads: bool = False
     ):
     if not threads:
-        endpoint = service.message_service.get
+        endpoint = service.messages_service.get
     else:
         endpoint = service.threads_service.get
     raw_message = endpoint(userId = "me", id= message_id, format= message_format).execute()

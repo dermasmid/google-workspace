@@ -207,11 +207,11 @@ class GoogleService(Resource):
         if self.api == "gmail":
             self.users_service: Resource = self.users() # pylint: disable=no-member
             self.history_service: Resource = self.users_service.history()
-            self.message_service: Resource = self.users_service.messages()
+            self.messages_service: Resource = self.users_service.messages()
             self.threads_service: Resource = self.users_service.threads()
             self.labels_service: Resource = self.users_service.labels()
             self.settings_service: Resource = self.users_service.settings()
-            self.attachment_service: Resource = self.message_service.attachments()
+            self.attachments_service: Resource = self.messages_service.attachments()
         elif self.api == "drive":
             self.files_service: Resource = self.files() # pylint: disable=no-member
 
