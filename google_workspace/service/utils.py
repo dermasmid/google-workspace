@@ -28,7 +28,10 @@ ERRORS_TO_CATCH = (
 )
 
 
-default_versions = {"drive": "v3", "gmail": "v1"}
+default_versions = {
+    "drive": "v3",
+    "gmail": "v1",
+}  # TODO: Get latest from discovery doc.
 
 
 def get_creds_file(creds):

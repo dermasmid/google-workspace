@@ -29,6 +29,46 @@ class GoogleService(Resource):
         creds: Credentials = None,
         workdir: str = None,
     ):
+        """GoogleService, A supercharged google service.
+
+        Parameters:
+            api (``str``):
+                The service api e.g. 'gmail'.
+
+            session (``str``, *optional*):
+                A string to identify a authenticated service, when first
+                authenticating a file {session}.pickle will be created which will store the credentials.
+                Defaults to None.
+
+            client_secrets (``str``, *optional*):
+                A file path to the creds file, you only need
+                this when connecting for the first time. Defaults to "creds.json".
+
+            scopes (``str`` | ``list``, *optional*):
+                The scopes you want to authenticate
+                you only need this when connecting for the first time. Defaults to None.
+
+            version (``str``, *optional*):
+                The api version, if you don't specify we will default
+                to the latest one. Defaults to None.
+
+            api_key (``str``, *optional*):
+                Your api key (if you are not using oauth). Defaults to None.
+
+            http (``Http``, *optional*):
+                Optionally use diffrent http instance when using ``api_key``. Defaults to None.
+
+            service (``Resource``, *optional*):
+                Use your own constructed ``Resource`` object. Defaults to None.
+
+            creds (``Credentials``, *optional*):
+                Use your own constructed ``Credentials`` object. Defaults to None.
+
+            workdir (``str``, *optional*):
+                Where to store the session files and where to look
+                for the creds file. Defaults to None.
+        """
+
         self.session = session or api
         self.version = version or utils.default_versions[api]
         self.api = api
@@ -40,8 +80,6 @@ class GoogleService(Resource):
             if isinstance(service, Resource):
                 self._add_service_methods(service)
                 self._make_special_services()
-            else:
-                raise ValueError("Invalid argument")
 
         elif api_key:
             http = http or Http()
@@ -51,8 +89,6 @@ class GoogleService(Resource):
         elif creds:
             if isinstance(creds, Credentials):
                 self._init_service(creds)
-            else:
-                raise ValueError("Invalid argument")
 
         else:
             if self.is_authenticated:
@@ -67,6 +103,16 @@ class GoogleService(Resource):
                 self.scopes = scopes or utils.get_default_scopes(self.api)
 
     def local_oauth(self, server_port: int = 2626):
+        """Run a local server to authenticate a user.
+
+        Parameters:
+            server_port (``int``, *optional*):
+                The port to run the server on. Defaults to 2626.
+
+        Returns:
+            :obj:`GoogleService`: Authenticated GoogleService.
+        """
+
         if self.is_authenticated:
             return
         self.flow = InstalledAppFlow.from_client_config(self.client_config, self.scopes)
@@ -84,6 +130,39 @@ class GoogleService(Resource):
         certfile: str = None,
         block=False,
     ) -> str:
+        """Runs a flow to authenticate a user remotely by a url.
+
+        Parameters:
+            server_host (``str``):
+                The host name of the machine (no http:// etc.).
+
+            server_port (``int``, *optional*):
+                The port to run the server on, if not provided
+                we will look into the `client_secrets` file to determine which ports you have setup
+                in your redirect_uris, this will only work if the file is updated after changing
+                the settings in the google cloud console. Defaults to None.
+
+            success_message (``str``, *optional*):
+                A message to display to the user after they successfully
+                authenticated. Defaults to "success".
+
+            keyfile (``str``, *optional*):
+                Your ssl keyfile to enable ssl for the server that
+                we are going to run. Defaults to None.
+
+            certfile (``str``, *optional*):
+                Your ssl certfile to enable ssl for the server that
+                we are going to run. Defaults to None.
+
+            block (``bool``, *optional*):
+                whether to have to program wait for the user
+                to enter the link and finnish the signup, or move on with the execution
+                of the program. Defaults to False.
+
+        Returns:
+            ``str`` | ``None``: If ``block`` is set to False (default) the function will return the url,
+            otherwise we print the url.
+        """
 
         if self.is_authenticated:
             return
@@ -103,19 +182,34 @@ class GoogleService(Resource):
         thread.start()
         if not block:
             # TODO: We might want to add a callback for when
-            # auth is done
+            # authentication is done
             return self.auth_url
         else:
             print(self.auth_url)
             thread.join()
 
-    def code_oauth(self):
+    def code_oauth(self) -> str:
+        """Runs a flow to authenticate a user remotely by a code.
+
+        Returns:
+            ``str``: The url for the user to authenticate.
+        """
+
         if self.is_authenticated:
             return
         self.redirect_uri = "urn:ietf:wg:oauth:2.0:oob"
         return self.get_auth_url()
 
     def get_auth_url(self) -> str:
+        """Get a url with redirect_url taken from self.redirect_uri, you can
+        use this if you are running the server yourself. When you get the code
+        or authorization_response from the user, you can use `fetch_token` to
+        complete the authentication process.
+
+        Returns:
+            ``str``: The url for the user to authenticate.
+        """
+
         self.flow = Flow.from_client_config(
             self.client_config, scopes=self.scopes, redirect_uri=self.redirect_uri
         )
@@ -125,6 +219,24 @@ class GoogleService(Resource):
     def fetch_token(
         self, code: str = None, authorization_response: str = None, state: str = None
     ):
+        """Complete the authentiction process.
+
+        Parameters:
+            code (``str``, *optional*):
+                The code that the user got from google
+                when they authorized your app. Defaults to None.
+
+            authorization_response (``str``, *optional*):
+                The reponse that the client sent
+                to your server after the user authorized your app. Defaults to None.
+
+            state (``str``, *optional*):
+                The state used when you started the flow. Defaults to None.
+
+        Returns:
+            :obj:`GoogleService`: Authenticated GoogleService.
+        """
+
         self.flow = Flow.from_client_config(
             self.client_config,
             scopes=self.scopes,
@@ -137,7 +249,9 @@ class GoogleService(Resource):
         self._init_service()
         return self
 
-    def delete(self):
+    def delete(self) -> None:
+        """Deletes the session file, and revokes the token."""
+
         if self.is_authenticated:
             with open(self.pickle_file, "rb") as f:
                 creds = pickle.load(f)
@@ -146,27 +260,59 @@ class GoogleService(Resource):
             os.remove(self.pickle_file)
 
     def get_state(self):
+        """Get the state for the current flow.
+
+        Returns:
+            str: If you started a flow it will return the state,
+            otherwise it will return None.
+        """
+
         if hasattr(self, "state"):
             return self.state
         return None
 
-    def make_thread_safe(self):
+    def make_thread_safe(self) -> None:
+        """Set's this service to be thread safe. Used internally."""
+
         self._http.credentials.threading = True
 
     def get_service_state_value(self, key: str) -> Any:
+        """Get a value from the service state. Used internally.
+
+        Args:
+            key (str): The key.
+
+        Returns:
+            Any: The value.
+        """
+
         return self.service_state.get(self.api, {}).get(key)
 
     def update_service_state(self, key: str, value: Any) -> None:
+        """Set's a value for the service state
+
+        Parameters:
+            key (``str``):
+                The key.
+
+            value (``Any``):
+                the value.
+        """
+
         if not self.api in self.service_state:
             self.service_state[self.api] = {}
         self.service_state[self.api][key] = value
 
     def save_service_state(self) -> None:
+        """Saves the service state to the session file."""
+
         with open(self.pickle_file, "wb") as f:
             pickle.dump(self._http.credentials, f)
             pickle.dump(self.service_state, f)
 
     def close(self) -> None:
+        """Closes the open http connection."""
+
         if self.is_authenticated:
             self._http.close()
 
@@ -177,6 +323,12 @@ class GoogleService(Resource):
         self.close()
 
     def __bool__(self) -> bool:
+        """Whether the service is authenticated
+
+        Returns:
+            ``bool``: Returns True if the session file exists.
+        """
+
         return self.is_authenticated
 
     def _get_service(self, creds: Credentials):
