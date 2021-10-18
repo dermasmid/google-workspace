@@ -30,7 +30,9 @@ class Label:
         self,
         name: str = None,
         message_list_visibility: Literal["show", "hide"] = None,
-        label_list_visibility: Literal["labelShow", "labelShowIfUnread", "labelHide"] = None,
+        label_list_visibility: Literal[
+            "labelShow", "labelShowIfUnread", "labelHide"
+        ] = None,
         background_color: str = None,
         text_color: str = None,
     ):

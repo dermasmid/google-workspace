@@ -495,7 +495,9 @@ class GmailClient:
         self,
         name: str,
         message_list_visibility: Literal["show", "hide"] = "show",
-        label_list_visibility: Literal["labelShow", "labelShowIfUnread", "labelHide"] = "labelShow",
+        label_list_visibility: Literal[
+            "labelShow", "labelShowIfUnread", "labelHide"
+        ] = "labelShow",
         background_color: str = None,
         text_color: str = None,
     ) -> Label:
