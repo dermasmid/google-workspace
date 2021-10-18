@@ -16,6 +16,46 @@ from . import utils
 
 
 class GoogleService(Resource):
+    """GoogleService, A supercharged google service.
+
+    Parameters:
+        api (``str``):
+            The service api e.g. 'gmail'.
+
+        session (``str``, *optional*):
+            A string to identify a authenticated service, when first
+            authenticating a file {session}.pickle will be created which will store the credentials.
+            Defaults to None.
+
+        client_secrets (``str``, *optional*):
+            A file path to the creds file, you only need
+            this when connecting for the first time. Defaults to "creds.json".
+
+        scopes (``str`` | ``list``, *optional*):
+            The scopes you want to authenticate
+            you only need this when connecting for the first time. Defaults to None.
+
+        version (``str``, *optional*):
+            The api version, if you don't specify we will default
+            to the latest one. Defaults to None.
+
+        api_key (``str``, *optional*):
+            Your api key (if you are not using oauth). Defaults to None.
+
+        http (``Http``, *optional*):
+            Optionally use diffrent http instance when using ``api_key``. Defaults to None.
+
+        service (``Resource``, *optional*):
+            Use your own constructed ``Resource`` object. Defaults to None.
+
+        creds (``Credentials``, *optional*):
+            Use your own constructed ``Credentials`` object. Defaults to None.
+
+        workdir (``str``, *optional*):
+            Where to store the session files and where to look
+            for the creds file. Defaults to None.
+    """
+
     def __init__(
         self,
         api: str,
@@ -29,45 +69,6 @@ class GoogleService(Resource):
         creds: Credentials = None,
         workdir: str = None,
     ):
-        """GoogleService, A supercharged google service.
-
-        Parameters:
-            api (``str``):
-                The service api e.g. 'gmail'.
-
-            session (``str``, *optional*):
-                A string to identify a authenticated service, when first
-                authenticating a file {session}.pickle will be created which will store the credentials.
-                Defaults to None.
-
-            client_secrets (``str``, *optional*):
-                A file path to the creds file, you only need
-                this when connecting for the first time. Defaults to "creds.json".
-
-            scopes (``str`` | ``list``, *optional*):
-                The scopes you want to authenticate
-                you only need this when connecting for the first time. Defaults to None.
-
-            version (``str``, *optional*):
-                The api version, if you don't specify we will default
-                to the latest one. Defaults to None.
-
-            api_key (``str``, *optional*):
-                Your api key (if you are not using oauth). Defaults to None.
-
-            http (``Http``, *optional*):
-                Optionally use diffrent http instance when using ``api_key``. Defaults to None.
-
-            service (``Resource``, *optional*):
-                Use your own constructed ``Resource`` object. Defaults to None.
-
-            creds (``Credentials``, *optional*):
-                Use your own constructed ``Credentials`` object. Defaults to None.
-
-            workdir (``str``, *optional*):
-                Where to store the session files and where to look
-                for the creds file. Defaults to None.
-        """
 
         self.session = session or api
         self.version = version or utils.default_versions[api]

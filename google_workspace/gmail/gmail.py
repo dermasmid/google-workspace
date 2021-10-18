@@ -16,6 +16,26 @@ from .label import Label
 
 
 class GmailClient:
+    """Create a Gmail client to interact with the Gmail API.
+
+    Parameters:
+        service (:obj:`GoogleService` | ``str``, *optional*):
+            Pass either a GoogleService instance or the
+            GoogleService session name. Defaults to None.
+
+        workers (``int``, *optional*):
+            Number of threads to use when handling updates. Defaults to 4.
+
+        save_state (``bool``, *optional*):
+            whether or not to save the state when the application
+            stops, if set to True and the application is then restarted and save_state is still set to True,
+            the app will go back in time to handle the updated that happend while the app was offline.
+            See the limitations here: https://developers.google.com/gmail/api/guides/sync#limitations. Defaults to False.
+
+        update_interval (``int``, *optional*):
+            How long to sleep before checking for updates again. Defaults to 1.
+    """
+
     def __init__(
         self,
         service: Union["service_module.GoogleService", str] = None,
@@ -23,25 +43,6 @@ class GmailClient:
         save_state: bool = False,
         update_interval: int = 1,
     ):
-        """Create a Gmail client to interact with the Gmail API.
-
-        Parameters:
-            service (:obj:`GoogleService` | ``str``, *optional*):
-                Pass either a GoogleService instance or the
-                GoogleService session name. Defaults to None.
-
-            workers (``int``, *optional*):
-                Number of threads to use when handling updates. Defaults to 4.
-
-            save_state (``bool``, *optional*):
-                whether or not to save the state when the application
-                stops, if set to True and the application is then restarted and save_state is still set to True,
-                the app will go back in time to handle the updated that happend while the app was offline.
-                See the limitations here: https://developers.google.com/gmail/api/guides/sync#limitations. Defaults to False.
-
-            update_interval (``int``, *optional*):
-                How long to sleep before checking for updates again. Defaults to 1.
-        """
 
         if isinstance(service, service_module.GoogleService):
             self.service = service
@@ -102,43 +103,48 @@ class GmailClient:
 
         Parameters:
             label_ids (``list`` | ``str``, *optional*):
-                Get only messages that have all these labels
+                Get only messages that have all these labels. Defaults to None.
 
             seen (``bool``, *optional*):
-                Get only seen or unseen messages
+                Get only seen or unseen messages. Defaults to None.
 
             from_ (``str``, *optional*):
-                Get only messages from this sender
+                Get only messages from this sender. Defaults to None.
 
             to (``list``, *optional*):
-                Get only messages that where sent to this list of recipients
+                Get only messages that where sent to this list of recipients. Defaults to None.
 
             subject (``str``, *optional*):
-                Get only messages that have this subject
+                Get only messages that have this subject. Defaults to None.
 
             after (:obj:`date`, *optional*):
-                Get only messages that where send after this date
+                Get only messages that where send after this date. Defaults to None.
 
             before (:obj:`date`, *optional*):
-                Get only messages that where sent before this date
+                Get only messages that where sent before this date. Defaults to None.
 
             label_name (``str``, *optional*):
                 Get only messages that have this label. differs from ``label_ids`` that this
-                take the lable name, not the id.
+                take the lable name, not the id. Defaults to None.
 
             include_spam_and_trash (``bool``, *optional*):
-                Whether to include spam and trash in the results
+                Whether to include spam and trash in the results. Defaults to False.
 
             message_format (``str``, *optional*):
-                In which format to retrieve the messages.
+                In which format to retrieve the messages. Can have one of the following values:
+                ``"minimal"``, ``"full"``, ``"raw"``, ``"metadata"``. Defaults to "raw".
 
             batch (``bool``, *optional*):
                 Whether to use batch requests when fetching the messages. recommended when fetching
-                a lot of messages.
+                a lot of messages. Defaults to True.
 
             limit (``int``, *optional*):
                 Limit the number of messages to retrieve. especially useful when ``batch`` is ``True``
-                to avoid downloading more messages then you need.
+                to avoid downloading more messages then you need. Defaults to None.
+
+        Returns:
+            Generator of :obj:`message.BaseMessage`: A generator of messages that matched your query.
+            Depending message_format it will return a different type of message.
         """
 
         query = utils.gmail_query_maker(
@@ -163,7 +169,12 @@ class GmailClient:
                 The message id. (The ``gmail_id`` property)
 
             message_format (``str``, *optional*):
-                In which format to retrieve the messages.
+                In which format to retrieve the messages. Can have one of the following values:
+                ``"minimal"``, ``"full"``, ``"raw"``, ``"metadata"``. Defaults to "raw".
+
+        Returns:
+            :obj:`message.BaseMessage`: depending message_format it will return a different
+            type of message.
         """
 
         message_class = utils.get_message_class(message_format)
@@ -189,44 +200,49 @@ class GmailClient:
 
         Parameters:
             label_ids (``list`` | ``str``, *optional*):
-                Get only threads that have all these labels
+                Get only threads that have all these labels. Defaults to None.
 
             seen (``bool``, *optional*):
-                Get only seen or unseen threads
+                Get only seen or unseen threads. Defaults to None.
 
             from_ (``str``, *optional*):
-                Get only threads from this sender
+                Get only threads from this sender. Defaults to None.
 
             to (``list``, *optional*):
-                Get only threads that where sent to this list of recipients
+                Get only threads that where sent to this list of recipients. Defaults to None.
 
             subject (``str``, *optional*):
-                Get only threads that have this subject
+                Get only threads that have this subject. Defaults to None.
 
             after (:obj:`date`, *optional*):
-                Get only threads that where send after this date
+                Get only threads that where send after this date. Defaults to None.
 
             before (:obj:`date`, *optional*):
-                Get only threads that where sent before this date
+                Get only threads that where sent before this date. Defaults to None.
 
             label_name (``str``, *optional*):
                 Get only threads that have this label. differs from ``label_ids`` that this
-                take the lable name, not the id.
+                take the lable name, not the id. Defaults to None.
 
             include_spam_and_trash (``bool``, *optional*):
-                Whether to include spam and trash in the results
+                Whether to include spam and trash in the results. Defaults to False.
 
             message_format (``str``, *optional*):
-                In which format to retrieve the messages.
+                In which format to retrieve the messages. Can have one of the following values:
+                ``"minimal"``, ``"full"``, ``"metadata"``. Defaults to "raw".
 
             batch (``bool``, *optional*):
                 Whether to use batch requests when fetching the threads. recommended when fetching
-                a lot of threads.
+                a lot of threads. Defaults to True.
 
             limit (``int``, *optional*):
                 Limit the number of threads to retrieve. especially useful when ``batch`` is ``True``
-                to avoid downloading more threads then you need.
+                to avoid downloading more threads then you need. Defaults to None.
+
+        Returns:
+            Generator of :obj:`thread.Thread`: A generator of all the threads the matched you query.
         """
+
         query = utils.gmail_query_maker(
             seen, from_, to, subject, after, before, label_name
         )
@@ -256,7 +272,11 @@ class GmailClient:
                 The thread id.
 
             message_format (``str``, *optional*):
-                In which format to retrieve the messages.
+                In which format to retrieve the messages. Can have one of the following values:
+                ``"minimal"``, ``"full"``, ``"metadata"``.  Defaults to "full".
+
+        Returns:
+            :obj:`thread.Thread`: The full thread with all it's messages.
         """
 
         raw_thread = helper.get_message_data(
@@ -265,7 +285,7 @@ class GmailClient:
         return thread.Thread(self, raw_thread, message_format)
 
     def add_handler(self, handler: Type[BaseHandler]):
-        """Add a handler
+        """Add a handler.
 
         Parameters:
             handler (:obj:`BaseHandler`):
@@ -355,7 +375,7 @@ class GmailClient:
             self.updates_queue.put(None)
 
     def run(self):
-        """Check for updated and have the handers handle it."""
+        """Check for updates and have the handers handle it."""
 
         self.service.make_thread_safe()
         signal.signal(signal.SIGINT, self.stop)
@@ -384,12 +404,12 @@ class GmailClient:
         """Helper decorator to add a :obj:`MessageAddedHandler` handler.
 
         Parameters:
-            labels: (``list`` | `str`, *optional*):
+            labels: (``list`` | ``str``, *optional*):
                 Filter for messages that that have these lables. Defaults to ``"inbox"``.
 
             filters (``list``, *optional*):
                 A list of filters. A filter is a function that takes in a message as an argument
-                and returns ``True`` or ``False``
+                and returns ``True`` or ``False``. Defaults to False.
         """
 
         @functools.wraps(func)
@@ -419,38 +439,41 @@ class GmailClient:
 
         Parameters:
             to (``list`` | ``str``, *optional*):
-                Who to send the message to. Can be either a string or a list of strings.
+                Who to send the message to. Can be either a string or a list of strings. Defaults to None.
 
             subject (``str``, *optional*):
-                The message subject.
+                The message subject. Defaults to "".
 
             text (``str``, *optional*):
                 The plain text of the message. if you only specify ``html`` the text will be automaticly
-                generated.
+                generated. Defaults to None.
 
             html (``str``, *optional*):
-                The html of the message.
+                The html of the message. Defaults to None.
 
             attachments (``list``, *optional*):
-                A list of attachments #TODO
+                A list of attachments #TODO Defaults to [].
 
             cc (``list`` | ``str``, *optional*):
-                The cc recipients.
+                The cc recipients. Defaults to None.
 
             bcc (``list`` | ``str``, *optional*):
-                The bcc recipients.
+                The bcc recipients. Defaults to None.
 
             references (``str``, *optional*):
-                Message references, used for replies.
+                Message references, used for replies. Defaults to None.
 
             in_reply_to (``str``, *optional*):
-                The message this replies to.
+                The message this replies to. Defaults to None.
 
             thread_id (``str``, *optional*):
-                The thread id of the message you are replying to
+                The thread id of the message you are replying to. Defaults to None.
 
             headers (``dict``, *optional*):
-                Additional headers to add to the message.
+                Additional headers to add to the message. Defaults to None.
+
+        Returns:
+            ``dict``: The API response.
         """
 
         message = utils.make_message(
@@ -480,13 +503,20 @@ class GmailClient:
         Parameters:
             label_id (``str``):
                 The label id.
+
+        Returns:
+            :obj:`Label`: The label.
         """
 
         label_data = helper.get_label_raw_data(self.service, label_id)
         return Label(label_data, self)
 
     def get_lables(self) -> Generator[Label, None, None]:
-        """Get all Labels"""
+        """Get all Labels.
+
+        Returns:
+            Generator of :obj:`Label`: A generator of all the labels.
+        """
         labels_data = helper.get_labels(self.service)
         for label in labels_data["labels"]:
             yield self.get_label_by_id(label["id"])
@@ -510,20 +540,23 @@ class GmailClient:
             message_list_visibility (``str``, *optional*):
                 The visibility of messages with this label in the message list in the Gmail web interface.
                 Can have one of the following values: ``"show"``, ``"hide"``
-                See here: https://developers.google.com/gmail/api/reference/rest/v1/users.labels#messagelistvisibility
-                Defaults to: ``"show"``
+                For more information visit the `Gmail API documentation <https://developers.google.com/gmail/api/reference/rest/v1/users.labels#messagelistvisibility>`__.
+                Defaults to: "show".
 
             label_list_visibility (``str``, *optional*):
                 The visibility of the label in the label list in the Gmail web interface.
                 Can have one of the following values: ``"labelShow"``, ``"labelShowIfUnread"``, ``"labelHide"``
-                See here: https://developers.google.com/gmail/api/reference/rest/v1/users.labels#labellistvisibility
-                Defaults to: ``"labelShow"``
+                For more information visit the `Gmail API documentation <https://developers.google.com/gmail/api/reference/rest/v1/users.labels#labellistvisibility>`__.
+                Defaults to: "labelShow".
 
             background_color (``str``, *optional*):
-                The background color represented as hex string.
+                The background color represented as hex string. Defaults to None.
 
             text_color (``str``, *optional*):
-                The text color of the label, represented as hex string.
+                The text color of the label, represented as hex string. Defaults to None.
+
+        Returns:
+            :obj:`Label`: The created label.
         """
 
         body = utils.make_label_dict(
@@ -538,7 +571,11 @@ class GmailClient:
         return self.get_label_by_id(data["id"])
 
     def get_filters(self) -> dict:
-        """Get filters"""
+        """Get filters.
+
+        Returns:
+            ``dict``: The API response.
+        """
 
         return self.service.settings_service.filters().list(userId="me").execute()
 
@@ -548,6 +585,9 @@ class GmailClient:
         Parameters:
             thread_id (``str``):
                 The thread id.
+
+        Returns:
+            ``dict``: The API response.
         """
 
         return self.service.threads_service.delete(userId="me", id=thread_id).execute()
@@ -558,6 +598,9 @@ class GmailClient:
         Parameters:
             thread_id (``str``):
                 The thread id.
+
+        Returns:
+            ``dict``: The API response.
         """
 
         return self.service.threads_service.trash(userId="me", id=thread_id).execute()
@@ -568,6 +611,9 @@ class GmailClient:
         Parameters:
             thread_id (``str``):
                 The thread id.
+
+        Returns:
+            ``dict``: The API response.
         """
 
         return self.service.threads_service.untrash(userId="me", id=thread_id).execute()
@@ -581,6 +627,9 @@ class GmailClient:
 
             label_ids (``list`` | ``str``):
                 The labels to add.
+
+        Returns:
+            ``dict``: The API response.
         """
 
         return self.service.threads_service.modify(
@@ -600,6 +649,9 @@ class GmailClient:
 
             label_ids (``list`` | ``str``):
                 The labels to remove.
+
+        Returns:
+            ``dict``: The API response.
         """
 
         return self.service.threads_service.modify(
@@ -614,6 +666,9 @@ class GmailClient:
         Parameters:
             message_id (``str``):
                 The message id.
+
+        Returns:
+            ``dict``: The API response.
         """
 
         return self.service.messages_service.delete(
@@ -626,6 +681,9 @@ class GmailClient:
         Parameters:
             message_id (``str``):
                 The message id.
+
+        Returns:
+            ``dict``: The API response.
         """
 
         return self.service.messages_service.trash(userId="me", id=message_id).execute()
@@ -636,6 +694,9 @@ class GmailClient:
         Parameters:
             message_id (``str``):
                 The message id.
+
+        Returns:
+            ``dict``: The API response.
         """
 
         return self.service.messages_service.untrash(
@@ -653,6 +714,9 @@ class GmailClient:
 
             label_ids (``list`` | ``str``):
                 The labels to add.
+
+        Returns:
+            ``dict``: The API response.
         """
 
         return self.service.messages_service.modify(
@@ -672,6 +736,9 @@ class GmailClient:
 
             label_ids (``list`` | ``str``):
                 The labels to remove.
+
+        Returns:
+            ``dict``: The API response.
         """
 
         return self.service.messages_service.modify(
@@ -686,6 +753,9 @@ class GmailClient:
         Parameters:
             message_id (``str``):
                 The message id.
+
+        Returns:
+            ``dict``: The API response.
         """
 
         return self.remove_labels_from_message(message_id, ["UNREAD"])
@@ -696,28 +766,51 @@ class GmailClient:
         Parameters:
             message_id (``str``):
                 The message id.
+
+        Returns:
+            ``dict``: The API response.
         """
 
         return self.add_labels_to_message(message_id, ["UNREAD"])
 
     def get_auto_forwarding_settings(self) -> dict:
-        """Get auto forwarding settings."""
+        """Get auto forwarding settings.
+
+        Returns:
+            ``dict``: The API response.
+        """
         return self.service.settings_service.getAutoForwarding(userId="me").execute()
 
     def get_imap_settings(self) -> dict:
-        """Get imap settings"""
+        """Get imap settings.
+
+        Returns:
+            ``dict``: The API response.
+        """
         return self.service.settings_service.getImap(userId="me").execute()
 
     def get_language_settings(self) -> dict:
-        """Get language settings"""
+        """Get language settings.
+
+        Returns:
+            ``dict``: The API response.
+        """
         return self.service.settings_service.getLanguage(userId="me").execute()
 
     def get_pop_settings(self) -> dict:
-        """Get pop settings"""
+        """Get pop settings.
+
+        Returns:
+            ``dict``: The API response.
+        """
         return self.service.settings_service.getPop(userId="me").execute()
 
     def get_vacation_settings(self) -> dict:
-        """Get vacation settings"""
+        """Get vacation settings.
+
+        Returns:
+            ``dict``: The API response.
+        """
         return self.service.settings_service.getVacation(userId="me").execute()
 
     def update_auto_forwarding_settings(
@@ -729,6 +822,7 @@ class GmailClient:
         ],
     ) -> dict:
         """Update auto forwarding settings.
+        This method is only available to service account clients that have been delegated domain-wide authority.
 
         Parameters:
             enabled (``bool``):
@@ -742,7 +836,10 @@ class GmailClient:
                 The state that a message should be left in after it has been forwarded.
                 Can have one of the following values: ``"dispositionUnspecified"``,
                 ``"leaveInInbox"``, ``"archive"``, ``"trash"``, ``"markRead"``.
-                See here: https://developers.google.com/gmail/api/reference/rest/v1/AutoForwarding#disposition
+                For more information visit the `Gmail API documentation <https://developers.google.com/gmail/api/reference/rest/v1/AutoForwarding#disposition>`__.
+
+        Returns:
+            ``dict``: The API response.
         """
 
         auto_forwarding = {
@@ -778,12 +875,15 @@ class GmailClient:
                 as deleted and expunged from the last visible IMAP folder.
                 Can have one of the following values: ``"expungeBehaviorUnspecified"``, ``"archive"``,
                 ``"trash"``, ``"deleteForever"``
-                See here: https://developers.google.com/gmail/api/reference/rest/v1/ImapSettings#expungebehavior
+                For more information visit the `Gmail API documentation <https://developers.google.com/gmail/api/reference/rest/v1/ImapSettings#expungebehavior>`__.
 
             max_folder_size (``int``):
                 An optional limit on the number of messages that an IMAP folder may contain.
                 Legal values are 0, 1000, 2000, 5000 or 10000.
                 A value of zero is interpreted to mean that there is no limit.
+
+        Returns:
+            ``dict``: The API response.
         """
 
         imap_settings = {
@@ -803,6 +903,9 @@ class GmailClient:
             display_language (``str``):
                 The language to display Gmail in, formatted as an RFC 3066 Language Tag
                 (for example en-GB, fr or ja for British English, French, or Japanese respectively).
+
+        Returns:
+            ``dict``: The API response.
         """
 
         language_settings = {"displayLanguage": display_language}
@@ -825,12 +928,15 @@ class GmailClient:
             access_window (``str``):
                 The range of messages which are accessible via POP.
                 Can have one of the following values: ``"accessWindowUnspecified"``, ``"disabled"``, ``"fromNowOn"``, ``"allMail"``
-                See here: https://developers.google.com/gmail/api/reference/rest/v1/PopSettings#accesswindow
+                For more information visit the `Gmail API documentation <https://developers.google.com/gmail/api/reference/rest/v1/PopSettings#accesswindow>`__.
 
             disposition (``str``):
                 The action that will be executed on a message after it has been fetched via POP.
                 Can have one of the following values: ``"dispositionUnspecified"``, ``"leaveInInbox"``, ``"archive"``, ``"trash"``, ``"markRead"``
-                See here: https://developers.google.com/gmail/api/reference/rest/v1/PopSettings#disposition
+                For more information visit the `Gmail API documentation <https://developers.google.com/gmail/api/reference/rest/v1/PopSettings#disposition>`__.
+
+        Returns:
+            ``dict``: The API response.
         """
 
         pop_settings = {"accessWindow": access_window, "disposition": disposition}
@@ -887,6 +993,9 @@ class GmailClient:
                 An optional end time for sending auto-replies (epoch ms). When this is specified,
                 Gmail will automatically reply only to messages that it receives before the end time.
                 If both startTime and endTime are specified, startTime must precede endTime.
+
+        Returns:
+            ``dict``: The API response.
         """
 
         vacation_settings = {
