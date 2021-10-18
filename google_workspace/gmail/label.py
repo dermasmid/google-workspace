@@ -1,3 +1,5 @@
+from typing import Literal
+
 from . import gmail
 from .utils import make_label_dict
 
@@ -8,16 +10,8 @@ class Label:
         self.raw_label = raw_label
         self.id = raw_label.get("id")
         self.name = raw_label.get("name")
-        self.message_list_visibility = (
-            _mapping[raw_label["messageListVisibility"]]()
-            if raw_label.get("messageListVisibility")
-            else None
-        )
-        self.label_list_visibility = (
-            _mapping[raw_label["labelListVisibility"]]()
-            if raw_label.get("labelListVisibility")
-            else None
-        )
+        self.message_list_visibility = raw_label.get("messageListVisibility")
+        self.label_list_visibility = raw_label.get("labelListVisibility")
         self.type = raw_label.get("type")
         self.is_system = self.type == "system"
         self.total_messages = raw_label.get("messagesTotal")
@@ -35,8 +29,8 @@ class Label:
     def modify(
         self,
         name: str = None,
-        message_list_visibility=None,
-        label_list_visibility=None,
+        message_list_visibility: Literal["show", "hide"] = None,
+        label_list_visibility: Literal["labelShow", "labelShowIfUnread", "labelHide"] = None,
         background_color: str = None,
         text_color: str = None,
     ):
@@ -52,45 +46,3 @@ class Label:
             userId="me", id=self.id, body=body
         ).execute()
         return self.gmail_client.get_label_by_id(data["id"])
-
-
-class ListVisibility:
-    def __init__(self, setting):
-        self.setting = setting
-
-    def __str__(self):
-        return self.setting
-
-
-class LabelShow(ListVisibility):
-    def __init__(self):
-        super().__init__("labelShow")
-
-
-class LabelHide(ListVisibility):
-    def __init__(self):
-        super().__init__("labelHide")
-
-
-class LabelShowIfUnread(ListVisibility):
-    def __init__(self):
-        super().__init__("labelShowIfUnread")
-
-
-class MessageShow(ListVisibility):
-    def __init__(self):
-        super().__init__("show")
-
-
-class MessageHide(ListVisibility):
-    def __init__(self):
-        super().__init__("hide")
-
-
-_mapping = {
-    "labelShow": LabelShow,
-    "labelHide": LabelHide,
-    "labelShowIfUnread": LabelShowIfUnread,
-    "show": MessageShow,
-    "hide": MessageHide,
-}

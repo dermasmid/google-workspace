@@ -12,7 +12,7 @@ from googleapiclient.errors import HttpError
 from .. import service as service_module
 from . import helper, message, thread, utils
 from .handlers import BaseHandler, MessageAddedHandler
-from .label import Label, LabelShow, MessageShow
+from .label import Label
 
 
 class GmailClient:
@@ -253,7 +253,7 @@ class GmailClient:
 
         Parameters:
             thread_id (``str``):
-                The thread id. (The ``gmail_id`` property)
+                The thread id.
 
             message_format (``str``, *optional*):
                 In which format to retrieve the messages.
@@ -474,7 +474,7 @@ class GmailClient:
         data = self.service.messages_service.send(userId="me", body=body).execute()
         return data
 
-    def get_label_by_id(self, label_id: str):
+    def get_label_by_id(self, label_id: str) -> Label:
         """Get a label by it's id.
 
         Parameters:
@@ -485,7 +485,7 @@ class GmailClient:
         label_data = helper.get_label_raw_data(self.service, label_id)
         return Label(label_data, self)
 
-    def get_lables(self):
+    def get_lables(self) -> Generator[Label, None, None]:
         """Get all Labels"""
         labels_data = helper.get_labels(self.service)
         for label in labels_data["labels"]:
@@ -494,11 +494,35 @@ class GmailClient:
     def create_label(
         self,
         name: str,
-        message_list_visibility=MessageShow(),
-        label_list_visibility=LabelShow(),
+        message_list_visibility: Literal["show", "hide"] = "show",
+        label_list_visibility: Literal["labelShow", "labelShowIfUnread", "labelHide"] = "labelShow",
         background_color: str = None,
         text_color: str = None,
-    ):
+    ) -> Label:
+        """Create a label
+
+        Parameters:
+            name (``str``):
+                The display name of the label.
+
+            message_list_visibility (``str``, *optional*):
+                The visibility of messages with this label in the message list in the Gmail web interface.
+                Can have one of the following values: ``"show"``, ``"hide"``
+                See here: https://developers.google.com/gmail/api/reference/rest/v1/users.labels#messagelistvisibility
+                Defaults to: ``"show"``
+
+            label_list_visibility (``str``, *optional*):
+                The visibility of the label in the label list in the Gmail web interface.
+                Can have one of the following values: ``"labelShow"``, ``"labelShowIfUnread"``, ``"labelHide"``
+                See here: https://developers.google.com/gmail/api/reference/rest/v1/users.labels#labellistvisibility
+                Defaults to: ``"labelShow"``
+
+            background_color (``str``, *optional*):
+                The background color represented as hex string.
+
+            text_color (``str``, *optional*):
+                The text color of the label, represented as hex string.
+        """
 
         body = utils.make_label_dict(
             name=name,

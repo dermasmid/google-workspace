@@ -244,10 +244,10 @@ def make_label_dict(
         body["name"] = name
 
     if message_list_visibility:
-        body["messageListVisibility"] = message_list_visibility.setting
+        body["messageListVisibility"] = message_list_visibility
 
     if label_list_visibility:
-        body["LabelListVisibility"] = label_list_visibility.setting
+        body["LabelListVisibility"] = label_list_visibility
 
     if background_color or text_color:
         color_dict = {"backgroundColor": background_color, "textColor": text_color}
