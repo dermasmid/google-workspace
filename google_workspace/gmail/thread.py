@@ -1,6 +1,6 @@
-from typing import Literal, Union
+from typing import Generator, Literal, Type, Union
 
-from . import gmail, utils
+from . import gmail, utils, message
 
 
 class Thread:
@@ -26,7 +26,7 @@ class Thread:
         return self.thread_id
 
     @property
-    def messages(self):
+    def messages(self) -> Generator[Type["message.BaseMessage"], None, None]:
         message_class = utils.get_message_class(self.message_format)
         for message in self.thread_data["messages"]:
             yield message_class(self.gmail_client, message)
