@@ -5,6 +5,16 @@ from . import gmail, thread, utils
 
 
 class BaseMessage:
+    """Common methods available on all message types.
+
+    Parameters:
+        gmail_client (:obj:`~google_workspace.gmail.GmailClient`):
+            The gmail_client.
+
+        message_data (``dict``):
+            The raw message data.
+    """
+
     def __init__(self, gmail_client: "gmail.GmailClient", message_data: dict) -> None:
         self.gmail_client = gmail_client
         self.message_data = message_data
@@ -14,27 +24,88 @@ class BaseMessage:
         self.snippet = message_data.get("snippet")
 
     def add_labels(self, label_ids: Union[list, str]) -> dict:
+        """Add labels to this message.
+
+        Parameters:
+            label_ids (``list`` | ``str``):
+                The lables to add.
+
+        Returns:
+            ``dict``: The API response.
+        """
+
         return self.gmail_client.add_labels_to_message(self.gmail_id, label_ids)
 
     def remove_labels(self, label_ids: Union[list, str]) -> dict:
+        """Remove labels from this message.
+
+        Parameters:
+            label_ids (``list`` | ``str``):
+                The lables to remove.
+
+        Returns:
+            ``dict``: The API response.
+        """
+
         return self.gmail_client.remove_labels_from_message(self.gmail_id, label_ids)
 
     def mark_read(self) -> dict:
+        """Mark this message as read.
+
+        Returns:
+            ``dict``: The API response.
+        """
+
         return self.gmail_client.mark_message_as_read(self.gmail_id)
 
     def mark_unread(self) -> dict:
+        """Mark this message as unread.
+
+        Returns:
+            ``dict``: The API response.
+        """
+
         return self.gmail_client.mark_message_as_unread(self.gmail_id)
 
     def delete(self) -> dict:
+        """Delete this message permanently.
+
+        Returns:
+            ``dict``: The API response.
+        """
+
         return self.gmail_client.delete_message(self.gmail_id)
 
     def trash(self) -> dict:
+        """Move this message to the trash.
+
+        Returns:
+            ``dict``: The API response.
+        """
+
         return self.gmail_client.trash_message(self.gmail_id)
 
     def untrash(self) -> dict:
+        """Untrash this message.
+
+        Returns:
+            ``dict``: The API response.
+        """
+
         return self.gmail_client.untrash_message(self.gmail_id)
 
     def get_header(self, header: str) -> Union[str, None]:
+        """Get a header from this message.
+
+        Parameters:
+            header (``str``):
+                The header name.
+
+        Returns:
+            ``str`` | None: If the header was found this will return the header value, otherwise
+            it will return None.
+        """
+
         if isinstance(self, MessageMetadata):
             return utils.invert_message_headers(
                 self.message_data["payload"]["headers"]
@@ -45,6 +116,18 @@ class BaseMessage:
     def get_thread(
         self, message_format: Literal["minimal", "full", "metadata"] = None
     ) -> "thread.Thread":
+        """Get the message's full thread.
+
+        Parameters:
+            message_format (``str``, *optional*):
+                In which format to retrieve the messages. Can have one of the following values:
+                ``"minimal"``, ``"full"``, ``"metadata"``. If this is not set we default to the
+                format of the current message. Defaults to None.
+
+        Returns:
+            :obj:`~google_workspace.gmail.thread.Thread`: The full thread.
+        """
+
         if not message_format:
             message_format = utils.get_message_format_from_message(
                 self, allow_raw=False
@@ -53,6 +136,16 @@ class BaseMessage:
 
 
 class Message(BaseMessage):
+    """A full message. This message is returned for "raw" and "full" message formats.
+
+    Parameters:
+        gmail_client (:obj:`~google_workspace.gmail.GmailClient`):
+            The gmail_client.
+
+        message_data (``dict``):
+            The raw message data.
+    """
+
     def __init__(self, gmail_client: "gmail.GmailClient", message_data: dict):
         super().__init__(gmail_client, message_data)
         if message_data.get("raw"):
@@ -96,13 +189,37 @@ class Message(BaseMessage):
         text: str = None,
         html: str = None,
         attachments: Union[Iterable[str], Iterable[Tuple[bytes, str]]] = [],
+        headers: dict = None,
     ) -> dict:
+        """Reply to this message.
+
+        Parameters:
+            text (``str``, *optional*):
+                The plain text of the message. if you only specify ``html`` the text will be automaticly
+                generated. Defaults to None.
+
+            html (``str``, *optional*):
+                The html of the message. Defaults to None.
+
+            attachments (``list``, *optional*):
+                A List of attachments. Can be a list of file paths like this ["image.png", "doc.pdf"],
+                or it can be a list of lists where every list consists of the attachment data and a name
+                for the attachment like this [[b"some binary here", "image.png"]].
+                Defaults to [].
+
+            headers (``dict``, *optional*):
+                Additional headers to add to the message. Defaults to None.
+
+        Returns:
+            ``dict``: The API response.
+        """
+
         if self.is_reply:
             references = self.references + " " + self.message_id
         else:
             references = self.message_id
         text_email, html_email = utils.create_replied_message(self, text, html)
-        data = self.gmail_client.send_message(
+        return self.gmail_client.send_message(
             to=self.raw_from,
             subject=f"Re: {self.subject}",
             text=text_email,
@@ -111,21 +228,40 @@ class Message(BaseMessage):
             references=references,
             in_reply_to=self.message_id,
             thread_id=self.thread_id,
+            headers=headers,
         )
-        return data
 
     def forward(
         self,
-        to: Union[list, str],
+        to: Union[list, str] = None,
         cc: Union[list, str] = None,
         bcc: Union[list, str] = None,
         headers: dict = None,
     ) -> dict:
+        """Forward this message.
+
+        Parameters:
+            to (``list`` | ``str``, *optional*):
+                Who to send the message to. Can be either a string or a list of strings. Defaults to None.
+
+            cc (``list`` | ``str``, *optional*):
+                The cc recipients. Defaults to None.
+
+            bcc (``list`` | ``str``, *optional*):
+                The bcc recipients. Defaults to None.
+
+            headers (``dict``, *optional*):
+                Additional headers to add to the message. Defaults to None.
+
+        Returns:
+            ``dict``: The API response.
+        """
+
         text_email, html_email = utils.create_forwarded_message(self)
         attachments = list(
             (attachment.payload, attachment.filename) for attachment in self.attachments
         )
-        self.gmail_client.send_message(
+        return self.gmail_client.send_message(
             to,
             f"Fwd: {self.subject}",
             text_email,
@@ -138,6 +274,16 @@ class Message(BaseMessage):
 
     @classmethod
     def from_full_format(cls, gmail_client: "gmail.GmailClient", message_data: dict):
+        """Create a message from the "full" format.
+
+        Parameters:
+            gmail_client (:obj:`~google_workspace.gmail.GmailClient`):
+                The gmail_client.
+
+            message_data (``dict``):
+                The raw message data in "full" format.
+        """
+
         self = cls(gmail_client, message_data)
         self.message_format = "full"
         self.email_object = utils.full_format_to_message_object(message_data["payload"])
@@ -183,6 +329,17 @@ class Message(BaseMessage):
 
 
 class MessageMetadata(BaseMessage):
+    """A message that includes only email message ID, labels, and email headers.
+    This message is returned for the "metadata" message format.
+
+    Parameters:
+        gmail_client (:obj:`~google_workspace.gmail.GmailClient`):
+            The gmail_client.
+
+        message_data (``dict``):
+            The raw message data.
+    """
+
     def __init__(self, gmail_client: "gmail.GmailClient", message_data: dict) -> None:
         super().__init__(gmail_client, message_data)
         self.process_message()
@@ -214,6 +371,12 @@ class MessageMetadata(BaseMessage):
         ) = utils.get_from_info(self.raw_from)
 
     def get_full_message(self) -> Message:
+        """Download the full message. Downloads the message using the "raw" format.
+
+        Returns:
+            :obj:`google_workspace.gmail.message.Message`: The full message.
+        """
+
         return self.gmail_client.get_message_by_id(self.gmail_id, message_format="raw")
 
     def __str__(self) -> str:
@@ -221,10 +384,27 @@ class MessageMetadata(BaseMessage):
 
 
 class MessageMinimal(BaseMessage):
+    """A message that includes only email message ID and labels.
+    This message is returned for the "minimal" message format.
+
+    Parameters:
+        gmail_client (:obj:`~google_workspace.gmail.GmailClient`):
+            The gmail_client.
+
+        message_data (``dict``):
+            The raw message data.
+    """
+
     def __init__(self, gmail_client: "gmail.GmailClient", message_data: dict) -> None:
         super().__init__(gmail_client, message_data)
 
     def get_full_message(self) -> Message:
+        """Download the full message. Downloads the message using the "raw" format.
+
+        Returns:
+            :obj:`google_workspace.gmail.message.Message`: The full message.
+        """
+
         return self.gmail_client.get_message_by_id(self.gmail_id, message_format="raw")
 
     def __str__(self) -> str:

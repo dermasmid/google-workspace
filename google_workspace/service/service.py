@@ -111,7 +111,7 @@ class GoogleService(Resource):
                 The port to run the server on. Defaults to 2626.
 
         Returns:
-            :obj:`GoogleService`: Authenticated GoogleService.
+            :obj:`~google_workspace.service.GoogleService`: Authenticated GoogleService.
         """
 
         if self.is_authenticated:
@@ -235,7 +235,7 @@ class GoogleService(Resource):
                 The state used when you started the flow. Defaults to None.
 
         Returns:
-            :obj:`GoogleService`: Authenticated GoogleService.
+            :obj:`~google_workspace.service.GoogleService`: Authenticated GoogleService.
         """
 
         self.flow = Flow.from_client_config(

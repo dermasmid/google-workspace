@@ -19,7 +19,7 @@ class GmailClient:
     """Create a Gmail client to interact with the Gmail API.
 
     Parameters:
-        service (:obj:`GoogleService` | ``str``, *optional*):
+        service (:obj:`~google_workspace.service.GoogleService` | ``str``, *optional*):
             Pass either a GoogleService instance or the
             GoogleService session name. Defaults to None.
 
@@ -143,7 +143,7 @@ class GmailClient:
                 to avoid downloading more messages then you need. Defaults to None.
 
         Returns:
-            Generator of :obj:`message.BaseMessage`: A generator of messages that matched your query.
+            Generator of :obj:`~google_workspace.gmail.message.BaseMessage`: A generator of messages that matched your query.
             Depending message_format it will return a different type of message.
         """
 
@@ -173,7 +173,7 @@ class GmailClient:
                 ``"minimal"``, ``"full"``, ``"raw"``, ``"metadata"``. Defaults to "raw".
 
         Returns:
-            :obj:`message.BaseMessage`: depending message_format it will return a different
+            :obj:`~google_workspace.gmail.message.BaseMessage`: depending message_format it will return a different
             type of message.
         """
 
@@ -240,7 +240,7 @@ class GmailClient:
                 to avoid downloading more threads then you need. Defaults to None.
 
         Returns:
-            Generator of :obj:`thread.Thread`: A generator of all the threads the matched you query.
+            Generator of :obj:`~google_workspace.gmail.thread.Thread`: A generator of all the threads the matched you query.
         """
 
         query = utils.gmail_query_maker(
@@ -276,7 +276,7 @@ class GmailClient:
                 ``"minimal"``, ``"full"``, ``"metadata"``.  Defaults to "full".
 
         Returns:
-            :obj:`thread.Thread`: The full thread with all it's messages.
+            :obj:`~google_workspace.gmail.thread.Thread`: The full thread with all it's messages.
         """
 
         raw_thread = helper.get_message_data(
@@ -288,7 +288,7 @@ class GmailClient:
         """Add a handler.
 
         Parameters:
-            handler (:obj:`BaseHandler`):
+            handler (:obj:`~google_workspace.gmail.handler.BaseHandler`):
                 The handler you would like to add.
         """
 
@@ -401,7 +401,7 @@ class GmailClient:
         labels: Union[list, str] = "inbox",
         filters: Iterable[Callable[[Type["message.BaseMessage"]], bool]] = None,
     ):
-        """Helper decorator to add a :obj:`MessageAddedHandler` handler.
+        """Helper decorator to add a :obj:`~google_workspace.gmail.handler.MessageAddedHandler` handler.
 
         Parameters:
             labels: (``list`` | ``str``, *optional*):
@@ -454,7 +454,7 @@ class GmailClient:
             attachments (``list``, *optional*):
                 A List of attachments. Can be a list of file paths like this ["image.png", "doc.pdf"],
                 or it can be a list of lists where every list consists of the attachment data and a name
-                for the attachment like this [b"some binary here", "image.png"].
+                for the attachment like this [[b"some binary here", "image.png"]].
                 Defaults to [].
 
             cc (``list`` | ``str``, *optional*):
@@ -508,7 +508,7 @@ class GmailClient:
                 The label id.
 
         Returns:
-            :obj:`Label`: The label.
+            :obj:`~google_workspace.gmail.label.Label`: The label.
         """
 
         label_data = helper.get_label_raw_data(self.service, label_id)
@@ -518,7 +518,7 @@ class GmailClient:
         """Get all Labels.
 
         Returns:
-            Generator of :obj:`Label`: A generator of all the labels.
+            Generator of :obj:`~google_workspace.gmail.label.Label`: A generator of all the labels.
         """
         labels_data = helper.get_labels(self.service)
         for label in labels_data["labels"]:
@@ -559,7 +559,7 @@ class GmailClient:
                 The text color of the label, represented as hex string. Defaults to None.
 
         Returns:
-            :obj:`Label`: The created label.
+            :obj:`~google_workspace.gmail.label.Label`: The created label.
         """
 
         body = utils.make_label_dict(
