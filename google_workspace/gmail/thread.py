@@ -31,23 +31,23 @@ class Thread:
         for message in self.thread_data["messages"]:
             yield message_class(self.gmail_client, message)
 
-    def add_labels(self, label_ids: Union[list, str]):
+    def add_labels(self, label_ids: Union[list, str]) -> dict:
         return self.gmail_client.add_labels_to_thread(self.thread_id, label_ids)
 
-    def remove_labels(self, label_ids: Union[list, str]):
+    def remove_labels(self, label_ids: Union[list, str]) -> dict:
         return self.gmail_client.remove_labels_from_thread(self.thread_id, label_ids)
 
-    def mark_read(self):
+    def mark_read(self) -> dict:
         return self.gmail_client.remove_labels_from_thread(self.thread_id, "unread")
 
-    def mark_unread(self):
+    def mark_unread(self) -> dict:
         return self.gmail_client.add_labels_to_thread(self.thread_id, "unread")
 
-    def delete(self):
+    def delete(self) -> dict:
         return self.gmail_client.delete_thread(self.thread_id)
 
-    def trash(self):
+    def trash(self) -> dict:
         return self.gmail_client.trash_thread(self.thread_id)
 
-    def untrash(self):
+    def untrash(self) -> dict:
         return self.gmail_client.untarsh_thread(self.thread_id)

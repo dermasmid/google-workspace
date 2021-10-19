@@ -13,28 +13,28 @@ class BaseMessage:
         self.label_ids = message_data.get("labelIds")
         self.snippet = message_data.get("snippet")
 
-    def add_labels(self, label_ids: Union[list, str]):
+    def add_labels(self, label_ids: Union[list, str]) -> dict:
         return self.gmail_client.add_labels_to_message(self.gmail_id, label_ids)
 
-    def remove_labels(self, label_ids: Union[list, str]):
+    def remove_labels(self, label_ids: Union[list, str]) -> dict:
         return self.gmail_client.remove_labels_from_message(self.gmail_id, label_ids)
 
-    def mark_read(self):
+    def mark_read(self) -> dict:
         return self.gmail_client.mark_message_as_read(self.gmail_id)
 
-    def mark_unread(self):
+    def mark_unread(self) -> dict:
         return self.gmail_client.mark_message_as_unread(self.gmail_id)
 
-    def delete(self):
+    def delete(self) -> dict:
         return self.gmail_client.delete_message(self.gmail_id)
 
-    def trash(self):
+    def trash(self) -> dict:
         return self.gmail_client.trash_message(self.gmail_id)
 
-    def untrash(self):
+    def untrash(self) -> dict:
         return self.gmail_client.untrash_message(self.gmail_id)
 
-    def get_header(self, header: str):
+    def get_header(self, header: str) -> Union[str, None]:
         if isinstance(self, MessageMetadata):
             return utils.invert_message_headers(
                 self.message_data["payload"]["headers"]
@@ -60,7 +60,7 @@ class Message(BaseMessage):
             self.email_object = utils.get_email_object(self.message_data["raw"])
             self.process_message()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Message From: {self.from_}, Subject: {self.subject}, Date: {self.date}"
 
     def __contains__(self, text: str) -> bool:
@@ -96,7 +96,7 @@ class Message(BaseMessage):
         text: str = None,
         html: str = None,
         attachments: Union[Iterable[str], Iterable[Iterable[bytes, str]]] = [],
-    ):
+    ) -> dict:
         if self.is_reply:
             references = self.references + " " + self.message_id
         else:
@@ -114,7 +114,7 @@ class Message(BaseMessage):
         )
         return data
 
-    def forward(self, to: list or str):
+    def forward(self, to: Union[list, str]) -> dict:
         text_email, html_email = utils.create_forwarded_message(self)
         new_message = copy(self)
         new_message.text = text_email
@@ -202,7 +202,7 @@ class MessageMetadata(BaseMessage):
     def get_full_message(self) -> Message:
         return self.gmail_client.get_message_by_id(self.gmail_id, message_format="raw")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Message From: {self.from_}, Subject: {self.subject}, Date: {self.date}"
 
 
@@ -226,20 +226,20 @@ class Attachment:
         self.content_id = attachment_part.get("Content-ID")
 
     @property
-    def filename(self):
+    def filename(self) -> str:
         return utils.decode(self._part.get_filename()) or ""
 
     @property
-    def payload(self):
+    def payload(self) -> bytes:
         data = self._part.get_payload(decode=True)
         return data
 
-    def download(self, path: str = None):
+    def download(self, path: str = None) -> str:
         path = path or self.filename
         data = self.payload
         with open(path, "wb") as f:
             f.write(data)
         return path
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.filename

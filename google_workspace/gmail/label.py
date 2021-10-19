@@ -1,6 +1,6 @@
-from typing import Literal
+from typing import Generator, Literal, Type
 
-from . import gmail
+from . import gmail, message
 from .utils import make_label_dict
 
 
@@ -20,10 +20,10 @@ class Label:
         self.threads_unread = raw_label.get("threadsUnread")
         self.color = raw_label.get("color")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self.raw_label)
 
-    def get_messages(self):
+    def get_messages(self) -> Generator[Type["message.BaseMessage"], None, None]:
         return self.gmail_client.get_messages(label_ids=self.id)
 
     def modify(

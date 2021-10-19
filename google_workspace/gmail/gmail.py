@@ -63,30 +63,30 @@ class GmailClient:
         if self.service.is_authenticated:
             self._get_user()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.user.get("messagesTotal")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"email: {self.email_address}, scopes: {self.service.authenticated_scopes}"
         )
 
     @property
-    def sender_name(self):
+    def sender_name(self) -> str:
         return self.user.get("sender_name")
 
     @sender_name.setter
-    def sender_name(self, sender_name):
+    def sender_name(self, sender_name: str):
         sender_name = utils.encode_if_not_english(sender_name)
         self.user["sender_name"] = sender_name
 
     @property
-    def email_address(self):
+    def email_address(self) -> str:
         return self.user.get("emailAddress")
 
     def get_messages(
         self,
-        label_ids: list or str = None,
+        label_ids: Union[list, str] = None,
         seen: bool = None,
         from_: str = None,
         to: list = None,
@@ -183,7 +183,7 @@ class GmailClient:
 
     def get_threads(
         self,
-        label_ids: list or str = None,
+        label_ids: Union[list, str] = None,
         seen: bool = None,
         from_: str = None,
         to: list = None,
@@ -284,7 +284,7 @@ class GmailClient:
         )
         return thread.Thread(self, raw_thread, message_format)
 
-    def add_handler(self, handler: Type[BaseHandler]):
+    def add_handler(self, handler: Type[BaseHandler]) -> None:
         """Add a handler.
 
         Parameters:
@@ -309,7 +309,7 @@ class GmailClient:
             handler.labels, self._handlers_config["labels"]
         )
 
-    def update_worker(self):
+    def update_worker(self) -> None:
         while True:
             full_update = self.updates_queue.get()
             if full_update is None:
@@ -317,7 +317,7 @@ class GmailClient:
 
             utils.handle_update(self, full_update)
 
-    def get_updates(self):
+    def get_updates(self) -> None:
         """This is the main function which looks for updates on the
         account, and adds it to the queue.
         """
@@ -349,7 +349,7 @@ class GmailClient:
                 break
             time.sleep(self.update_interval)
 
-    def _handle_stop(self):
+    def _handle_stop(self) -> None:
         if not self.save_state:
             with self.updates_queue.mutex:
                 self.updates_queue.queue.clear()
@@ -374,7 +374,7 @@ class GmailClient:
         for _ in range(self.workers):
             self.updates_queue.put(None)
 
-    def run(self):
+    def run(self) -> None:
         """Check for updates and have the handers handle it."""
 
         self.service.make_thread_safe()
@@ -392,7 +392,7 @@ class GmailClient:
         finally:
             self._handle_stop()
 
-    def stop(self, signum=None, frame=None):
+    def stop(self, signum=None, frame=None) -> None:
         self.stop_request.set()
 
     def on_message(
@@ -423,13 +423,13 @@ class GmailClient:
 
     def send_message(
         self,
-        to: list or str = None,
+        to: Union[list, str] = None,
         subject: str = "",
         text: str = None,
         html: str = None,
         attachments: Union[Iterable[str], Iterable[Iterable[bytes, str]]] = [],
-        cc: list or str = None,
-        bcc: list or str = None,
+        cc: Union[list, str] = None,
+        bcc: Union[list, str] = None,
         references: str = None,
         in_reply_to: str = None,
         thread_id: str = None,
