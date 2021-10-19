@@ -5,7 +5,7 @@ import time
 from datetime import date
 from queue import Empty, Queue
 from threading import Event, Thread
-from typing import Any, Callable, Generator, Iterable, List, Literal, Type, Union
+from typing import Any, Callable, Generator, Iterable, Literal, Type, Union, Tuple
 
 from googleapiclient.errors import HttpError
 
@@ -399,7 +399,7 @@ class GmailClient:
         self,
         func: Callable[[Type["message.BaseMessage"]], Any] = None,
         labels: Union[list, str] = "inbox",
-        filters: List[Callable[[Type["message.BaseMessage"]], bool]] = None,
+        filters: Iterable[Callable[[Type["message.BaseMessage"]], bool]] = None,
     ):
         """Helper decorator to add a :obj:`MessageAddedHandler` handler.
 
@@ -427,7 +427,7 @@ class GmailClient:
         subject: str = "",
         text: str = None,
         html: str = None,
-        attachments: Union[Iterable[str], Iterable[Iterable[bytes, str]]] = [],
+        attachments: Union[Iterable[str], Iterable[Tuple[bytes, str]]] = [],
         cc: Union[list, str] = None,
         bcc: Union[list, str] = None,
         references: str = None,

@@ -1,5 +1,5 @@
 from copy import copy
-from typing import Iterable, Literal, Union
+from typing import Iterable, Literal, Tuple, Union
 
 from . import gmail, thread, utils
 
@@ -95,7 +95,7 @@ class Message(BaseMessage):
         self,
         text: str = None,
         html: str = None,
-        attachments: Union[Iterable[str], Iterable[Iterable[bytes, str]]] = [],
+        attachments: Union[Iterable[str], Iterable[Tuple[bytes, str]]] = [],
     ) -> dict:
         if self.is_reply:
             references = self.references + " " + self.message_id
@@ -114,13 +114,27 @@ class Message(BaseMessage):
         )
         return data
 
-    def forward(self, to: Union[list, str]) -> dict:
+    def forward(
+        self,
+        to: Union[list, str],
+        cc: Union[list, str] = None,
+        bcc: Union[list, str] = None,
+        headers: dict = None,
+    ) -> dict:
         text_email, html_email = utils.create_forwarded_message(self)
-        new_message = copy(self)
-        new_message.text = text_email
-        new_message.html = html_email
-        new_message.subject = f"Fwd: {new_message.subject}"
-        self.gmail_client.send_message_from_message_obj(new_message, to)
+        attachments = list(
+            (attachment.payload, attachment.filename) for attachment in self.attachments
+        )
+        self.gmail_client.send_message(
+            to,
+            f"Fwd: {self.subject}",
+            text_email,
+            html_email,
+            attachments,
+            cc,
+            bcc,
+            headers,
+        )
 
     @classmethod
     def from_full_format(cls, gmail_client: "gmail.GmailClient", message_data: dict):

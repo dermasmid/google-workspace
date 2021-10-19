@@ -150,7 +150,7 @@ def make_message(
     subject: str = "",
     text: str = None,
     html: str = None,
-    attachments: Union[Iterable[str], Iterable[Iterable[bytes, str]]] = [],
+    attachments: Union[Iterable[str], Iterable[Tuple[bytes, str]]] = [],
     references: str = None,
     in_reply_to: str = None,
     headers: dict = None,
