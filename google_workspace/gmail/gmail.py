@@ -5,7 +5,7 @@ import time
 from datetime import date
 from queue import Empty, Queue
 from threading import Event, Thread
-from typing import Any, Callable, Generator, List, Literal, Type, Union
+from typing import Any, Callable, Generator, Iterable, List, Literal, Type, Union
 
 from googleapiclient.errors import HttpError
 
@@ -427,7 +427,7 @@ class GmailClient:
         subject: str = "",
         text: str = None,
         html: str = None,
-        attachments: list = [],
+        attachments: Union[Iterable[str], Iterable[Iterable[bytes, str]]] = [],
         cc: list or str = None,
         bcc: list or str = None,
         references: str = None,
@@ -452,7 +452,10 @@ class GmailClient:
                 The html of the message. Defaults to None.
 
             attachments (``list``, *optional*):
-                A list of attachments #TODO Defaults to [].
+                A List of attachments. Can be a list of file paths like this ["image.png", "doc.pdf"],
+                or it can be a list of lists where every list consists of the attachment data and a name
+                for the attachment like this [b"some binary here", "image.png"].
+                Defaults to [].
 
             cc (``list`` | ``str``, *optional*):
                 The cc recipients. Defaults to None.

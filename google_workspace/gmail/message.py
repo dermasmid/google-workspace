@@ -1,7 +1,7 @@
 from copy import copy
-from typing import Union, Literal
+from typing import Iterable, Literal, Union
 
-from . import gmail, utils, thread
+from . import gmail, thread, utils
 
 
 class BaseMessage:
@@ -91,7 +91,12 @@ class Message(BaseMessage):
             else:
                 self.attachments.append(Attachment(part))
 
-    def reply(self, text: str = None, html: str = None, attachments: list = []):
+    def reply(
+        self,
+        text: str = None,
+        html: str = None,
+        attachments: Union[Iterable[str], Iterable[Iterable[bytes, str]]] = [],
+    ):
         if self.is_reply:
             references = self.references + " " + self.message_id
         else:

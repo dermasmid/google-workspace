@@ -14,7 +14,7 @@ from email.mime.text import MIMEText
 from email.utils import getaddresses
 from html.parser import HTMLParser
 from mimetypes import guess_type
-from typing import Literal, Tuple, Union
+from typing import Iterable, Literal, Tuple, Union
 
 import magic
 from googleapiclient.errors import HttpError
@@ -150,9 +150,9 @@ def make_message(
     subject: str = "",
     text: str = None,
     html: str = None,
-    attachments: list = [],  # list of file paths or list of tuples with (data, filename) format or (filepath, filename to use)
-    references: str = None,  # For replying emails
-    in_reply_to: str = None,  # Same
+    attachments: Union[Iterable[str], Iterable[Iterable[bytes, str]]] = [],
+    references: str = None,
+    in_reply_to: str = None,
     headers: dict = None,
 ) -> bytes:
 
@@ -203,12 +203,9 @@ def make_message(
 
             with open(attachment_path, "rb") as f:
                 data = f.read()
-        elif isinstance(attachment_path, tuple):
+        elif isinstance(attachment_path, Iterable):
             data = attachment_path[0]
             file_name = attachment_path[1]
-            if isinstance(data, str):
-                with open(data, "rb") as f:
-                    data = f.read()
             content_type = magic.from_buffer(data, mime=True)
 
         if content_type is None:
@@ -281,14 +278,17 @@ def get_label_id(label_id: str):
 
 def get_proper_label_ids(label_ids: Union[list, str]) -> Union[list, None]:
     """Convert labels we get from users to the ones used by gmail.
-    EX. `'inbox'` to `['INBOX']`.
+    EX. 'inbox' to ['INBOX'].
 
-    Args:
-        label_ids (Union[list, str]): Either a list of labels or a single one.
+    Parameters:
+        label_ids (``list`` | ``str``):
+            Either a list of labels or a single one.
 
     Returns:
-        Union[list, None]: If `label_id` was not None this will be a list.
+        ``list`` | None:
+            If `label_id` was not None this will be a list.
     """
+
     if isinstance(label_ids, str):
         return [get_label_id(label_ids)]
     elif isinstance(label_ids, list):
