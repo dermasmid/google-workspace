@@ -28,7 +28,7 @@ class GoogleService(Resource):
             Defaults to None.
 
         client_secrets (``str``, *optional*):
-            A file path to the creds file, you only need
+            A file path to the secrets file, or the secrets as a dict. you only need
             this when connecting for the first time. Defaults to "creds.json".
 
         scopes (``str`` | ``list``, *optional*):
@@ -60,7 +60,7 @@ class GoogleService(Resource):
         self,
         api: str,
         session: str = None,
-        client_secrets: str = "creds.json",
+        client_secrets: Union[str, dict] = "creds.json",
         scopes: Union[str, list] = None,
         version: str = None,
         api_key: str = None,
@@ -95,9 +95,12 @@ class GoogleService(Resource):
             if self.is_authenticated:
                 self._init_service()
             else:
-                client_secrets = self.workdir / utils.get_creds_file(client_secrets)
-                with open(client_secrets, "r") as f:
-                    self.client_config = json.load(f)
+                if isinstance(client_secrets, str):
+                    client_secrets = self.workdir / utils.get_creds_file(client_secrets)
+                    with open(client_secrets, "r") as f:
+                        self.client_config = json.load(f)
+                else:
+                    self.client_config = client_secrets
 
                 if isinstance(scopes, str):
                     scopes = [scopes]
@@ -201,11 +204,15 @@ class GoogleService(Resource):
         self.redirect_uri = "urn:ietf:wg:oauth:2.0:oob"
         return self.get_auth_url()
 
-    def get_auth_url(self) -> str:
+    def get_auth_url(self, state: str = None) -> str:
         """Get a url with redirect_url taken from self.redirect_uri, you can
         use this if you are running the server yourself. When you get the code
         or authorization_response from the user, you can use `fetch_token` to
         complete the authentication process.
+
+        Parameters:
+            state (``str``, *optional*):
+                Set the state for the authentication flow.
 
         Returns:
             ``str``: The url for the user to authenticate.
@@ -214,7 +221,9 @@ class GoogleService(Resource):
         self.flow = Flow.from_client_config(
             self.client_config, scopes=self.scopes, redirect_uri=self.redirect_uri
         )
-        auth_url, self.state = self.flow.authorization_url(prompt="consent")
+        auth_url, self.state = self.flow.authorization_url(
+            prompt="consent", state=state
+        )
         return auth_url
 
     def fetch_token(
