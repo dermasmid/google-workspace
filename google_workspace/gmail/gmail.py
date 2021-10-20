@@ -1018,7 +1018,10 @@ class GmailClient:
     def _get_user(self):
         try:
             self.user = self.service.users_service.getProfile(userId="me").execute()
-        except HttpError:
-            # Not sufficient permissions.
-            self.user = {}
+        except HttpError as e:
+            if e.reason == "Request had insufficient authentication scopes.":
+                # Not sufficient permissions.
+                self.user = {}
+            else:
+                raise
         self.history_id = self.user.get("historyId")
