@@ -1,3 +1,10 @@
 sphinx
 sphinx_rtd_theme
 sphinx_copybutton
+
+# google_workspace
+google-api-python-client
+google-auth-oauthlib
+chardet
+python-magic
+trython
