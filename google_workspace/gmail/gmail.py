@@ -61,6 +61,7 @@ class GmailClient:
         self.updates_queue = Queue()
         self.stop_request = Event()
         if self.service.is_authenticated:
+            # TODO: don't call automatically.
             self._get_user()
 
     def __len__(self) -> int:
@@ -378,8 +379,8 @@ class GmailClient:
         """Check for updates and have the handers handle it."""
 
         self.service.make_thread_safe()
-        signal.signal(signal.SIGINT, self.stop)
-        signal.signal(signal.SIGTERM, self.stop)
+        signal.signal(signal.SIGINT, self.quit)
+        signal.signal(signal.SIGTERM, self.quit)
         threads = []
         for _ in range(self.workers):
             thread = Thread(target=self.update_worker)
@@ -392,7 +393,7 @@ class GmailClient:
         finally:
             self._handle_stop()
 
-    def stop(self, signum=None, frame=None) -> None:
+    def quit(self, signum=None, frame=None) -> None:
         self.stop_request.set()
 
     def on_message(
@@ -499,6 +500,49 @@ class GmailClient:
             body["threadId"] = thread_id
         data = self.service.messages_service.send(userId="me", body=body).execute()
         return data
+
+    def watch(
+        self,
+        topic_name: str,
+        label_filter_action: Literal["include", "exclude"] = None,
+        label_ids: Union[list, str] = None,
+    ) -> dict:
+        """Set up or update a push notification watch on the given user mailbox.
+
+        Parameters:
+            topic_name (``str``):
+                A fully qualified Google Cloud Pub/Sub API topic name to publish the events to.
+
+            label_filter_action (``str``, *optional*):
+                Filtering behavior of labelIds list specified.
+                Can have one of the following values: ``"include"``, ``"exclude"``. Defaults to: None.
+
+            label_ids (``list`` | ``str``, *optional*):
+                List of labelIds to restrict notifications about. By default, if unspecified, all changes are pushed out.
+                If specified then dictates which labels are required for a push notification to be generated.
+                Defaults to: None.
+
+        Returns:
+            ``dict``: The API response.
+        """
+
+        return self.service.users_service.watch(
+            userId="me",
+            body={
+                "labelIds": utils.get_proper_label_ids(label_ids),
+                "labelFilterAction": label_filter_action,
+                "topicName": topic_name,
+            },
+        ).execute()
+
+    def stop(self) -> dict:
+        """Stop receiving push notifications for the given user mailbox.
+
+        Returns:
+            ``dict``: The API response.
+        """
+
+        return self.service.users_service.stop(userId="me").execute()
 
     def get_label_by_id(self, label_id: str) -> Label:
         """Get a label by it's id.
