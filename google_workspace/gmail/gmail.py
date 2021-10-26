@@ -324,9 +324,7 @@ class GmailClient:
         """
 
         if self.save_state:
-            self.history_id = (
-                self.service.get_service_state_value("history_id") or self.history_id
-            )
+            self.history_id = self.service.get_value("history_id") or self.history_id
         history_types = list(self.handlers.keys())
         # Determine which labels are to be handled, and if it's just
         # one, we can ask to api to only send us updates which matches
@@ -366,9 +364,7 @@ class GmailClient:
             else:
                 oldest_history_id = self.history_id
             if not oldest_history_id is None:
-                self.service.update_service_state(
-                    "history_id", int(oldest_history_id) - 1
-                )
+                self.service.set_value("history_id", int(oldest_history_id) - 1)
                 self.service.save_service_state()
 
         # Stop the workers.

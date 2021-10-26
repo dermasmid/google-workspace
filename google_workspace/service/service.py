@@ -1,6 +1,5 @@
 import json
 import os
-import pickle
 import threading
 import urllib
 from pathlib import Path
@@ -22,9 +21,12 @@ class GoogleService(Resource):
         api (``str``):
             The service api e.g. 'gmail'.
 
-        session (``str``, *optional*):
-            A string to identify a authenticated service, when first
-            authenticating a file {session}.pickle will be created which will store the credentials.
+        session (``str`` | ``dict``, *optional*):
+            Pass a string of your choice to give a name to the client session, e.g.: "gmail".
+            This name will be used to save a file on disk that stores details needed to reconnect without asking
+            again for credentials. If you don't pass a value the credentials will not be writen to disk, so in order
+            to preserve the credentials you can use the export_session method which will return a dict which you can
+            save however you want, and then use it as the value here in order to reconnect.
             Defaults to None.
 
         client_secrets (``str``, *optional*):
@@ -48,7 +50,7 @@ class GoogleService(Resource):
         service (``Resource``, *optional*):
             Use your own constructed ``Resource`` object. Defaults to None.
 
-        creds (``Credentials``, *optional*):
+        credentials (``Credentials``, *optional*):
             Use your own constructed ``Credentials`` object. Defaults to None.
 
         workdir (``str``, *optional*):
@@ -59,23 +61,30 @@ class GoogleService(Resource):
     def __init__(
         self,
         api: str,
-        session: str = None,
+        session: Union[str, dict] = None,
         client_secrets: Union[str, dict] = "creds.json",
         scopes: Union[str, list] = None,
         version: str = None,
         api_key: str = None,
         http: Http = None,
         service: Resource = None,
-        creds: Credentials = None,
+        credentials: Credentials = None,
         workdir: str = None,
     ):
 
-        self.session = session or api
-        self.version = version or utils.default_versions[api]
+        self.version = version or utils.default_versions.get(api)
         self.api = api
         self.workdir = Path(workdir or ".")
-        self.pickle_file = self.workdir / (self.session + ".pickle")
-        self.is_authenticated = os.path.exists(self.pickle_file)
+        self.session_file = None
+        self.session_data = {}
+        self.is_authenticated = False
+        if isinstance(session, str):
+            self.session_file = self.workdir / ((session or api) + ".session")
+            self.is_authenticated = os.path.exists(self.session_file)
+        elif isinstance(session, dict):
+            self.is_authenticated = True
+            self.session_data = session
+
         utils.configure_error_handling()
         if service:
             if isinstance(service, Resource):
@@ -87,11 +96,13 @@ class GoogleService(Resource):
             service = self._get_service_args(http=http, developer_key=api_key)
             super().__init__(**service)
 
-        elif creds:
-            if isinstance(creds, Credentials):
-                self._init_service(creds)
+        elif credentials:
+            self.is_authenticated = True
+            self.credentials = credentials
+            self._init_service()
 
         else:
+            self.credentials = None
             if self.is_authenticated:
                 self._init_service()
             else:
@@ -106,24 +117,21 @@ class GoogleService(Resource):
                     scopes = [scopes]
                 self.scopes = scopes or utils.get_default_scopes(self.api)
 
-    def local_oauth(self, server_port: int = 2626):
+    def local_oauth(self, server_port: int = 2626) -> None:
         """Run a local server to authenticate a user.
 
         Parameters:
             server_port (``int``, *optional*):
                 The port to run the server on. Defaults to 2626.
-
-        Returns:
-            :obj:`~google_workspace.service.GoogleService`: Authenticated GoogleService.
         """
 
         if self.is_authenticated:
             return
         self.flow = InstalledAppFlow.from_client_config(self.client_config, self.scopes)
-        creds = self.flow.run_local_server(port=server_port)
-        self._save_creds(creds)
+        self.credentials = self.flow.run_local_server(port=server_port)
+        self._retrieve_session_data()
+        self._save_session()
         self._init_service()
-        return self
 
     def url_oauth(
         self,
@@ -254,8 +262,9 @@ class GoogleService(Resource):
             state=state,
         )
         self.flow.fetch_token(code=code, authorization_response=authorization_response)
-        creds = self.flow.credentials
-        self._save_creds(creds)
+        self.credentials = self.flow.credentials
+        self._retrieve_session_data()
+        self._save_session()
         self._init_service()
         return self
 
@@ -263,11 +272,12 @@ class GoogleService(Resource):
         """Deletes the session file, and revokes the token."""
 
         if self.is_authenticated:
-            with open(self.pickle_file, "rb") as f:
-                creds = pickle.load(f)
-            data = urllib.parse.urlencode({"token": creds.token}).encode("ascii")
+            data = urllib.parse.urlencode({"token": self.credentials.token}).encode(
+                "ascii"
+            )
             urllib.request.urlopen("https://oauth2.googleapis.com/revoke", data)
-            os.remove(self.pickle_file)
+            if self.session_file:
+                os.remove(self.session_file)
 
     def get_state(self):
         """Get the state for the current flow.
@@ -286,8 +296,8 @@ class GoogleService(Resource):
 
         self._http.credentials.threading = True
 
-    def get_service_state_value(self, key: str) -> Any:
-        """Get a value from the service state. Used internally.
+    def get_value(self, key: str) -> Any:
+        """Get a value from the service set by set_value.
 
         Args:
             key (str): The key.
@@ -296,10 +306,10 @@ class GoogleService(Resource):
             Any: The value.
         """
 
-        return self.service_state.get(self.api, {}).get(key)
+        return self.session_data.get(self.api, {}).get(key)
 
-    def update_service_state(self, key: str, value: Any) -> None:
-        """Set's a value for the service state
+    def set_value(self, key: str, value: Any) -> None:
+        """Set a value for the service.
 
         Parameters:
             key (``str``):
@@ -309,16 +319,14 @@ class GoogleService(Resource):
                 the value.
         """
 
-        if not self.api in self.service_state:
-            self.service_state[self.api] = {}
-        self.service_state[self.api][key] = value
+        if not self.api in self.session_data:
+            self.session_data[self.api] = {}
+        self.session_data[self.api][key] = value
+        self._save_session()
 
-    def save_service_state(self) -> None:
-        """Saves the service state to the session file."""
-
-        with open(self.pickle_file, "wb") as f:
-            pickle.dump(self._http.credentials, f)
-            pickle.dump(self.service_state, f)
+    def export_session(self) -> dict:
+        self._retrieve_session_data()
+        return self.session_data
 
     def close(self) -> None:
         """Closes the open http connection."""
@@ -341,18 +349,18 @@ class GoogleService(Resource):
 
         return self.is_authenticated
 
-    def _get_service(self, creds: Credentials):
-        service = self._get_service_args(creds)
+    def _get_service(self):
+        service = self._get_service_args(self.credentials)
         super().__init__(**service)
         self._make_special_services()
-        self.authenticated_scopes = creds.scopes
+        self.authenticated_scopes = self.credentials.scopes
 
-    def _get_service_args(self, creds=None, http=None, developer_key=None):
+    def _get_service_args(self, credentials=None, http=None, developer_key=None):
         with utils.modify_resource():
             resource = build(
                 self.api,
                 self.version,
-                credentials=creds,
+                credentials=credentials,
                 http=http,
                 developerKey=developer_key,
             )
@@ -380,33 +388,44 @@ class GoogleService(Resource):
         elif self.api == "drive":
             self.files_service: Resource = self.files()  # pylint: disable=no-member
 
-    def _save_creds(self, creds: Credentials):
-        with open(self.pickle_file, "wb") as token:
-            pickle.dump(creds, token)
+    def _save_session(self):
+        if self.session_file:
+            with open(self.session_file, "w") as f:
+                json.dump(self.session_data, f)
         self.is_authenticated = True
 
-    def _get_creds(self):
-        with open(self.pickle_file, "rb") as f:
-            creds = pickle.load(f)
-            try:
-                self.service_state = pickle.load(f)
-            except EOFError:
-                self.service_state = {self.api: {}}
-        if not creds or not creds.valid:
-            request = Request()
-            creds.refresh(request)
-            request.session.close()
-        return creds
+    def _retrieve_session_data(self):
+        if self.session_file and self.is_authenticated and not self.session_data:
+            with open(self.session_file, "r") as f:
+                self.session_data = json.load(f)
 
-    def _init_service(self, creds: Credentials = None):
-        if not creds:
-            creds = self._get_creds()
-        self._get_service(creds)
+        else:
+            self.session_data["credentials"] = json.loads(self.credentials.to_json())
+
+    def _retrieve_credentials(self):
+        self.credentials = Credentials.from_authorized_user_info(
+            self.session_data["credentials"]
+        )
+        if not self.credentials.valid:
+            request = Request()
+            self.credentials.refresh(request)
+            request.session.close()
+
+    def _init_service(self):
+        if not self.session_data:
+            self._retrieve_session_data()
+        if not self.credentials:
+            self._retrieve_credentials()
+        self._get_service()
         self._post_auth_setup()
 
     def _post_auth_setup(self):
         self._http.credentials.is_google_workspace = True
         self._http.credentials.threading = False
         self._http.credentials.authenticated_scopes = self.authenticated_scopes
-        self._http.credentials.api = self.api
-        self._http.credentials.version = self.version
+        self._http.credentials.api = (
+            self.api
+        )  # TODO: we can get this from the method_id
+        self._http.credentials.version = (
+            self.version
+        )  # TODO: we can maybe get this from the url?
