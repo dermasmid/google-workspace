@@ -1,4 +1,4 @@
-from typing import Generator, Literal, Type, Union
+from typing import Generator, Iterable, Literal, Type, Union
 
 import trython
 from googleapiclient.errors import HttpError
@@ -76,7 +76,12 @@ def get_message_data(
 
 
 def get_history_data(
-    service, start_history_id: int, history_types: list = None, label_id: str = None
+    service,
+    start_history_id: int,
+    history_types: Iterable[
+        Literal["messageAdded", "messageDeleted", "labelAdded", "labelRemoved"]
+    ] = None,
+    label_id: str = None,
 ):
     # TODO: handle next page tokens
     params = {
