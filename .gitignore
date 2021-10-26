@@ -9,3 +9,4 @@ dist/
 *.pickle
 *secret*.json
 *creds.json
+docs/_build
