@@ -1,7 +1,7 @@
 
 Welcome to Google Workspace's documentation!
 ================================================
-**Google Workspace** is a high level API wrapper for some of the productivity related Google API's.
+**Google Workspace** is a high level unofficial API wrapper for some of the productivity related Google API's.
 This library has for now only implemented a client for Gmail, I hope to add Drive and much more in the near future.
 
 Installation
