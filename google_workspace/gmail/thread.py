@@ -44,8 +44,8 @@ class Thread:
         """The messages.
 
         Returns:
-            Generator of :obj:`~google_workspace.gmail.message.Message`: A generator of the messages from this thread.
-            Depending message_format it will return a different type of message.
+            Generator of :obj:`~google_workspace.gmail.message.Message` | :obj:`~google_workspace.gmail.message.MessageMetadata` | :obj:`~google_workspace.gmail.message.MessageMinimal`:
+            A generator of the messages from this thread. Depending message_format it will return a different type of message.
         """
 
         message_class = utils.get_message_class(self.message_format)

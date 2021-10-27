@@ -35,6 +35,7 @@ run the following:
    :caption: Gmail Reference
 
    api/gmail/gmail-client
-   api/gmail/message
+   api/gmail/message/index
    api/gmail/thread
    api/gmail/label
+   api/gmail/handler

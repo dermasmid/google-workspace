@@ -8,6 +8,27 @@ HISTORY_TYPE_LITERAL = Literal[
 
 
 class BaseHandler:
+    """A handler class with no history type filter.
+
+    Parameters:
+        callback (``callable``):
+            A callback function to execute when there's a new update.
+
+        labels (``list`` | ``str``, *optional*):
+            Handle only updates to messages that have all of these labels.
+            Defaults to: None.
+
+        filters (``list``, *optional*):
+            A list of functions. The functions should take on agrument which will be the message
+            and should return a bool if the message should be handled or not.
+            Defaults to: None.
+
+        history_types (``str``, *optional*):
+            Which history types to handle. Can have one of the following values: ``"messageAdded"``,
+            ``"messageDeleted"``, ``"labelAdded"``, ``"labelRemoved"``.
+            Defaults to: None.
+    """
+
     def __init__(
         self,
         callback: Callable[[Type["message.BaseMessage"]], Any],
@@ -39,6 +60,22 @@ class BaseHandler:
 
 
 class MessageAddedHandler(BaseHandler):
+    """A handler class with the messageAdded history type filter.
+
+    Parameters:
+        callback (``callable``):
+            A callback function to execute when there's a new update.
+
+        labels (``list`` | ``str``, *optional*):
+            Handle only updates to messages that have all of these labels.
+            Defaults to: None.
+
+        filters (``list``, *optional*):
+            A list of functions. The functions should take on agrument which will be the message
+            and should return a bool if the message should be handled or not.
+            Defaults to: None.
+    """
+
     def __init__(
         self,
         callback: Callable[[Type["message.BaseMessage"]], Any],
@@ -49,6 +86,22 @@ class MessageAddedHandler(BaseHandler):
 
 
 class MessageDeletedHandler(BaseHandler):
+    """A handler class with the messageDeleted history type filter.
+
+    Parameters:
+        callback (``callable``):
+            A callback function to execute when there's a new update.
+
+        labels (``list`` | ``str``, *optional*):
+            Handle only updates to messages that have all of these labels.
+            Defaults to: None.
+
+        filters (``list``, *optional*):
+            A list of functions. The functions should take on agrument which will be the message
+            and should return a bool if the message should be handled or not.
+            Defaults to: None.
+    """
+
     def __init__(
         self,
         callback: Callable[[Type["message.BaseMessage"]], Any],
@@ -59,6 +112,22 @@ class MessageDeletedHandler(BaseHandler):
 
 
 class LabelAddedHandler(BaseHandler):
+    """A handler class with the labelAdded history type filter.
+
+    Parameters:
+        callback (``callable``):
+            A callback function to execute when there's a new update.
+
+        labels (``list`` | ``str``, *optional*):
+            Handle only updates to messages that have all of these labels.
+            Defaults to: None.
+
+        filters (``list``, *optional*):
+            A list of functions. The functions should take on agrument which will be the message
+            and should return a bool if the message should be handled or not.
+            Defaults to: None.
+    """
+
     def __init__(
         self,
         callback: Callable[[Type["message.BaseMessage"]], Any],
@@ -69,6 +138,22 @@ class LabelAddedHandler(BaseHandler):
 
 
 class LabelRemovedHandler(BaseHandler):
+    """A handler class with the labelRemoved history type filter.
+
+    Parameters:
+        callback (``callable``):
+            A callback function to execute when there's a new update.
+
+        labels (``list`` | ``str``, *optional*):
+            Handle only updates to messages that have all of these labels.
+            Defaults to: None.
+
+        filters (``list``, *optional*):
+            A list of functions. The functions should take on agrument which will be the message
+            and should return a bool if the message should be handled or not.
+            Defaults to: None.
+    """
+
     def __init__(
         self,
         callback: Callable[[Type["message.BaseMessage"]], Any],

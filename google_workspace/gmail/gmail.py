@@ -144,8 +144,8 @@ class GmailClient:
                 to avoid downloading more messages then you need. Defaults to None.
 
         Returns:
-            Generator of :obj:`~google_workspace.gmail.message.BaseMessage`: A generator of messages that matched your query.
-            Depending message_format it will return a different type of message.
+            Generator of :obj:`~google_workspace.gmail.message.Message` | :obj:`~google_workspace.gmail.message.MessageMetadata` | :obj:`~google_workspace.gmail.message.MessageMinimal`:
+            Depending message_format it will return a differenttype of message.
         """
 
         query = utils.gmail_query_maker(
@@ -174,8 +174,8 @@ class GmailClient:
                 ``"minimal"``, ``"full"``, ``"raw"``, ``"metadata"``. Defaults to "raw".
 
         Returns:
-            :obj:`~google_workspace.gmail.message.BaseMessage`: depending message_format it will return a different
-            type of message.
+            :obj:`~google_workspace.gmail.message.Message` | :obj:`~google_workspace.gmail.message.MessageMetadata` | :obj:`~google_workspace.gmail.message.MessageMinimal`:
+            Depending message_format it will return a differenttype of message.
         """
 
         message_class = utils.get_message_class(message_format)
@@ -289,7 +289,7 @@ class GmailClient:
         """Add a handler.
 
         Parameters:
-            handler (:obj:`~google_workspace.gmail.handler.BaseHandler`):
+            handler (:obj:`~google_workspace.gmail.handlers.BaseHandler`):
                 The handler you would like to add.
         """
 
@@ -398,7 +398,7 @@ class GmailClient:
         labels: Union[list, str] = "inbox",
         filters: Iterable[Callable[[Type["message.BaseMessage"]], bool]] = None,
     ):
-        """Helper decorator to add a :obj:`~google_workspace.gmail.handler.MessageAddedHandler` handler.
+        """Helper decorator to add a :obj:`~google_workspace.gmail.handlers.MessageAddedHandler` handler.
 
         Parameters:
             labels: (``list`` | ``str``, *optional*):

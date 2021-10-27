@@ -1,4 +1,3 @@
-from copy import copy
 from typing import Iterable, Literal, Tuple, Union
 
 from . import gmail, thread, utils
@@ -374,7 +373,7 @@ class MessageMetadata(BaseMessage):
         """Download the full message. Downloads the message using the "raw" format.
 
         Returns:
-            :obj:`google_workspace.gmail.message.Message`: The full message.
+            :obj:`~google_workspace.gmail.message.Message`: The full message.
         """
 
         return self.gmail_client.get_message_by_id(self.gmail_id, message_format="raw")

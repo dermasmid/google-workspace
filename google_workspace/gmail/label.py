@@ -45,10 +45,13 @@ class Label:
                 ``"minimal"``, ``"full"``, ``"raw"``, ``"metadata"``. Defaults to "raw".
 
         Returns:
-            Generator of :obj:`~google_workspace.gmail.message.Message`: A generator of the messages.
+            Generator of :obj:`~google_workspace.gmail.message.Message` | :obj:`~google_workspace.gmail.message.MessageMetadata` | :obj:`~google_workspace.gmail.message.MessageMinimal`:
+            A generator of the messages.
         """
 
-        return self.gmail_client.get_messages(label_ids=self.id, message_format=message_format)
+        return self.gmail_client.get_messages(
+            label_ids=self.id, message_format=message_format
+        )
 
     def modify(
         self,
