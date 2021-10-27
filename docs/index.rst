@@ -36,3 +36,5 @@ run the following:
 
    api/gmail/gmail-client
    api/gmail/message
+   api/gmail/thread
+   api/gmail/label

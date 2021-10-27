@@ -552,7 +552,7 @@ class GmailClient:
         """
 
         label_data = helper.get_label_raw_data(self.service, label_id)
-        return Label(label_data, self)
+        return Label(self, label_data)
 
     def get_lables(self) -> Generator[Label, None, None]:
         """Get all Labels.
