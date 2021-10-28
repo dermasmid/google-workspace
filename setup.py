@@ -1,5 +1,9 @@
 from setuptools import setup, find_packages
-from google_workspace import __version__
+import re
+
+
+with open("google_workspace/__init__.py", encoding="utf-8") as f:
+    version = re.findall(r"__version__ = \"(.+)\"", f.read())[0]
 
 
 with open("README.md", encoding="utf-8") as f:
@@ -12,7 +16,7 @@ with open("requirements.txt", encoding="utf-8") as f:
 
 setup(
     name="google-workspace",
-    version=__version__,
+    version=version,
     packages=find_packages(),
     url="https://github.com/dermasmid/google-workspace",
     license="MIT",
