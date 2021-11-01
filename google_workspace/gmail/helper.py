@@ -76,33 +76,25 @@ def get_message_data(
 
 
 def get_history_data(
-    service,
+    gmail_client,
     start_history_id: int,
     history_types: Iterable[
         Literal["messageAdded", "messageDeleted", "labelAdded", "labelRemoved"]
     ] = None,
     label_id: str = None,
+    page_token: str = None,
+    max_results: int = None,
 ):
-    # TODO: handle next page tokens
     params = {
         "userId": "me",
         "startHistoryId": start_history_id,
         "historyTypes": history_types,
         "labelId": label_id,
+        "pageToken": page_token,
+        "maxResults": max_results,
     }
-    try:
-        data = service.history_service.list(**params).execute()
-    except HttpError as e:
-        if not e.reason == "Requested entity was not found.":
-            raise
-        # history_id was invalid (probably an old save_state) so getting the
-        # most recent history_id. This might change.
-        data = {
-            "historyId": service.users_service.getProfile(userId="me")
-            .execute()
-            .get("historyId")
-        }
-    return data
+
+    return gmail_client.service.history_service.list(**params).execute()
 
 
 def get_labels(service):

@@ -3,14 +3,14 @@ import functools
 import signal
 import time
 from datetime import date
-from queue import Empty, Queue
+from queue import Queue
 from threading import Event, Thread
-from typing import Any, Callable, Generator, Iterable, Literal, Type, Union, Tuple
+from typing import Any, Callable, Generator, Iterable, Literal, Tuple, Type, Union
 
 from googleapiclient.errors import HttpError
 
 from .. import service as service_module
-from . import helper, message, thread, utils
+from . import helper, histories, message, thread, utils
 from .handlers import BaseHandler, MessageAddedHandler
 from .label import Label
 
@@ -312,11 +312,11 @@ class GmailClient:
 
     def update_worker(self) -> None:
         while True:
-            full_update = self.updates_queue.get()
-            if full_update is None:
+            history = self.updates_queue.get()
+            if history is None:
                 break
 
-            utils.handle_update(self, full_update)
+            utils.handle_update(self, history)
 
     def get_updates(self) -> None:
         """This is the main function which looks for updates on the
@@ -337,13 +337,10 @@ class GmailClient:
         )
         # If there's no handler's - quit.
         while history_types:
-            data = helper.get_history_data(
-                self.service, self.history_id, history_types, label_id
-            )
-            self.history_id = data["historyId"]
-            for history in data.get("history", []):
-                if len(history) == 3:
-                    self.updates_queue.put(utils.format_update(history))
+            histories = self.get_history(self.history_id, label_id, history_types)
+            self.history_id = histories.history_id
+            for history in histories:
+                self.updates_queue.put(history)
             if self.stop_request.is_set():
                 break
             time.sleep(self.update_interval)
@@ -353,18 +350,8 @@ class GmailClient:
             with self.updates_queue.mutex:
                 self.updates_queue.queue.clear()
         else:
-            queue_items = []
-            while True:
-                try:
-                    queue_items.append(self.updates_queue.get_nowait())
-                except Empty:
-                    break
-            if queue_items:
-                oldest_history_id = queue_items[0]["history_id"]
-            else:
-                oldest_history_id = self.history_id
-            if not oldest_history_id is None:
-                self.service.set_value("history_id", int(oldest_history_id) - 1)
+            if not self.history_id is None:
+                self.service.set_value("history_id", int(self.history_id) - 1)
                 self.service.save_service_state()
 
         # Stop the workers.
@@ -394,9 +381,9 @@ class GmailClient:
 
     def on_message(
         self,
-        func: Callable[[Type["message.BaseMessage"]], Any] = None,
+        func: Callable[["histories.History"], Any] = None,
         labels: Union[list, str] = "inbox",
-        filters: Iterable[Callable[[Type["message.BaseMessage"]], bool]] = None,
+        filters: Iterable[Callable[["histories.History"], bool]] = None,
     ):
         """Helper decorator to add a :obj:`~google_workspace.gmail.handlers.MessageAddedHandler` handler.
 
@@ -417,6 +404,42 @@ class GmailClient:
         if func:
             return decorator(func)
         return decorator
+
+    def get_history(
+        self,
+        start_history_id: int,
+        label_id: str = None,
+        history_types: Iterable[
+            Literal["messageAdded", "messageDeleted", "labelAdded", "labelRemoved"]
+        ] = None,
+        max_results: int = None,
+    ) -> "histories.listHistoryResponse":
+        """Get everything that happened in the account since start_history_id.
+
+        Parameters:
+            start_history_id(``int``):
+                Where to start the results from.
+
+            label_id(``str``, *optional*):
+                Only return histories which have the label in thier message.
+
+            history_types(``str``, *optional*):
+                Only return histories of this types.
+
+            max_results(``int``, *optional*):
+                Maximum number of history records to return. The maximum allowed value for this field is 500.
+
+        Returns:
+            :obj:`~google_workspace.gmail.histories.listHistoryResponse`: A iterable of histories.
+        """
+
+        return histories.listHistoryResponse(
+            self,
+            start_history_id,
+            history_types,
+            label_id,
+            max_results,
+        )
 
     def send_message(
         self,

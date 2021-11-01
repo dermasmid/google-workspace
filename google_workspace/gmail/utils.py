@@ -19,7 +19,7 @@ from typing import Iterable, Literal, Tuple, Union
 import magic
 from googleapiclient.errors import HttpError
 
-from . import gmail, message
+from . import gmail, histories, message
 
 handler_update_key_to_type_map = {
     "messagesAdded": "messageAdded",
@@ -342,19 +342,6 @@ def gmail_query_maker(
     return " ".join(querys)
 
 
-def format_update(raw_update):
-    keys = list(raw_update.keys())
-    keys.remove("id")
-    keys.remove("messages")
-    update_key = keys[0]
-    update_type = handler_update_key_to_type_map[update_key]
-    return {
-        "type": update_type,
-        "updates": raw_update[update_key],
-        "history_id": raw_update["id"],
-    }
-
-
 def create_forwarded_message(message) -> Tuple[str, str]:
     formated_to = ", ".join(message.to)
     formated_date = message.date.strftime("%a, %b %d, %Y at %I:%M %p")
@@ -444,26 +431,25 @@ def add_encoding_aliases():
     _aliases["iso-8859-8-e"] = "iso8859_8"
 
 
-def handle_update(gmail_client: "gmail.GmailClient", full_update):
-    update_type = full_update["type"]
-    handle_labels = gmail_client._handlers_config["labels_per_type"][update_type]
-    for update in full_update["updates"]:
-        if handle_labels and not any(
-            label in handle_labels for label in update["message"].get("labelIds", [])
-        ):
-            # Don't even bother downloading the full message
-            continue
-        try:
-            message = gmail_client.get_message_by_id(update["message"]["id"])
-        except HttpError as e:
-            if e._get_reason().strip() == "Requested entity was not found.":
-                # We got an update for a draft, but was deleted (sent out) or updated since.
-                continue
-            raise e
+def handle_update(gmail_client: "gmail.GmailClient", history: "histories.History"):
+    handle_labels = gmail_client._handlers_config["labels_per_type"][
+        history.history_type
+    ]
 
-        for handler in gmail_client.handlers[update_type]:
-            if handler.check(message):
-                handler.callback(message)
+    if handle_labels and not any(label in handle_labels for label in history.label_ids):
+        # Don't even bother downloading the full message
+        return
+    try:
+        history.message
+    except HttpError as e:
+        if e._get_reason().strip() == "Requested entity was not found.":
+            # We got an update for a draft, but was deleted (sent out) or updated since.
+            return
+        raise e
+
+    for handler in gmail_client.handlers[history.history_type]:
+        if handler.check(history):
+            handler.callback(history)
 
 
 def add_labels_to_handler_config(
