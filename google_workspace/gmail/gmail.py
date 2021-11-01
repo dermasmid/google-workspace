@@ -20,8 +20,9 @@ class GmailClient:
 
     Parameters:
         service (:obj:`~google_workspace.service.GoogleService` | ``str``, *optional*):
-            Pass either a GoogleService instance or the
-            GoogleService session name. Defaults to None.
+            Pass either a GoogleService instance or the GoogleService session name.
+            If left empty will use "gmail" for session name. If the service is not authenticated,
+            we'll run local_oauth. Defaults to None.
 
         workers (``int``, *optional*):
             Number of threads to use when handling updates. Defaults to 4.
@@ -48,10 +49,10 @@ class GmailClient:
             self.service = service
 
         else:
-            if service:
-                self.service = service_module.GoogleService(
-                    api="gmail", session=service
-                )
+            self.service = service_module.GoogleService(
+                api="gmail", session=service or "gmail"
+            )
+            self.service.local_oauth()
         self.workers = workers
         self.save_state = save_state
         self.update_interval = update_interval
