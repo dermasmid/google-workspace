@@ -482,7 +482,8 @@ class GmailClient:
             max_results,
         )
 
-    def decode_pub_sub_message(self, message: Union[str, bytes]) -> dict:
+    @staticmethod
+    def decode_pub_sub_message(message: Union[str, bytes]) -> dict:
         """Decodes an incoming pub/sub message.
 
         Parameters:
