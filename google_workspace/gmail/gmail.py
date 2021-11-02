@@ -1,5 +1,6 @@
 import base64
 import functools
+import json
 import signal
 import time
 from datetime import date
@@ -35,6 +36,21 @@ class GmailClient:
 
         update_interval (``int``, *optional*):
             How long to sleep before checking for updates again. Defaults to 1.
+
+        email_address(``str``, *optional*):
+            If you dont have enough scopes for getting the user's info, you have to specify the user's
+            email address which will be used when sending messages.
+
+        sender_name(``str``, *optional*):
+            If you dont have enough scopes for getting the user's info, you can set the senders name here,
+            and will be used when sending emails.
+
+    Attributes:
+        workers: Number of workers.
+        save_state: whether to save the history_id.
+        update_interval: How often to check for updates.
+        sender_name: The user's name.
+        email_address: The user's email address.
     """
 
     def __init__(
@@ -43,6 +59,8 @@ class GmailClient:
         workers: int = 4,
         save_state: bool = False,
         update_interval: int = 1,
+        email_address: str = None,
+        sender_name: str = None,
     ):
 
         if isinstance(service, service_module.GoogleService):
@@ -61,30 +79,52 @@ class GmailClient:
         self._handlers_config = {"labels": [], "labels_per_type": {}}
         self.updates_queue = Queue()
         self.stop_request = Event()
-        if self.service.is_authenticated:
-            # TODO: don't call automatically.
-            self._get_user()
+        self._sender_name = sender_name
+        self._email_address = email_address
+        self._history_id = None
+        self._user = None
 
     def __len__(self) -> int:
         return self.user.get("messagesTotal")
 
     def __str__(self) -> str:
-        return (
-            f"email: {self.email_address}, scopes: {self.service.authenticated_scopes}"
-        )
+        return f"email: {self.email_address or 'Not known'}, scopes: {self.service.authenticated_scopes}"
 
     @property
     def sender_name(self) -> str:
-        return self.user.get("sender_name")
+        if self._sender_name is None:
+            self._sender_name = self.user.get("sender_name")
+        return self._sender_name
 
     @sender_name.setter
     def sender_name(self, sender_name: str):
-        sender_name = utils.encode_if_not_english(sender_name)
-        self.user["sender_name"] = sender_name
+        self._sender_name = utils.encode_if_not_english(sender_name)
 
     @property
     def email_address(self) -> str:
-        return self.user.get("emailAddress")
+        if self._email_address is None:
+            self._email_address = self.user.get("emailAddress")
+        return self._email_address
+
+    @email_address.setter
+    def email_address(self, email_address: str):
+        self._email_address = email_address
+
+    @property
+    def history_id(self):
+        if self._history_id is None:
+            self._history_id = self.user.get("historyId")
+        return self._history_id
+
+    @history_id.setter
+    def history_id(self, history_id: str):
+        self._history_id = history_id
+
+    @property
+    def user(self) -> dict:
+        if self._user is None:
+            self._get_user()
+        return self._user
 
     def get_messages(
         self,
@@ -440,6 +480,23 @@ class GmailClient:
             history_types,
             label_id,
             max_results,
+        )
+
+    def decode_pub_sub_message(self, message: Union[str, bytes]) -> dict:
+        """Decodes an incoming pub/sub message.
+
+        Parameters:
+            message(``str`` | ``bytes``):
+                The message recived from Google, as text or bytes.
+
+        Returns:
+            ``dict``: The actual message like this: {"emailAddress": "user@example.com", "historyId": "9876543210"}
+        """
+        if isinstance(message, bytes):
+            message = message.decode("utf-8")
+        message_dict = json.loads(message)
+        return json.loads(
+            base64.b64decode(message_dict["message"]["data"]).decode("utf-8")
         )
 
     def send_message(
@@ -1081,11 +1138,10 @@ class GmailClient:
 
     def _get_user(self):
         try:
-            self.user = self.service.users_service.getProfile(userId="me").execute()
+            self._user = self.service.users_service.getProfile(userId="me").execute()
         except HttpError as e:
             if e.reason == "Request had insufficient authentication scopes.":
                 # Not sufficient permissions.
-                self.user = {}
+                self._user = {}
             else:
                 raise
-        self.history_id = self.user.get("historyId")

@@ -12,6 +12,16 @@ class BaseMessage:
 
         message_data (``dict``):
             The raw message data.
+
+    Attributes:
+        gmail_client: The gmail client.
+        message_data: The raw message data from the API.
+        gmail_id: The message id used for the API.
+        thread_id: The messgae thread ID.
+        label_ids: A list of labels.
+        snippet: A short snippet from the message.
+        is_seen: Whether the message is marked as read or not.
+        is_chat_message: If this message is a chat message.
     """
 
     def __init__(self, gmail_client: "gmail.GmailClient", message_data: dict) -> None:
@@ -21,6 +31,8 @@ class BaseMessage:
         self.thread_id = message_data.get("threadId")
         self.label_ids = message_data.get("labelIds")
         self.snippet = message_data.get("snippet")
+        self.is_seen = not "UNREAD" in self.label_ids
+        self.is_chat_message = "CHAT" in self.label_ids
 
     def add_labels(self, label_ids: Union[list, str]) -> dict:
         """Add labels to this message.
@@ -143,6 +155,40 @@ class Message(BaseMessage):
 
         message_data (``dict``):
             The raw message data.
+    Attributes:
+        in_reply_to: The message id of the message this message replies to.
+        references: The message ids of the messages this message is a reply to.
+        is_reply: Whether the message is a reply or not.
+        message_id: A string of the the message id.
+        subject: A string of the message subject.
+        raw_from: A string of the message's From header which can be used when sending messages
+            to include the name.
+        raw_to: A list of the message's To header in it's original form.
+        raw_cc: A list of the message's Cc header in it's original form.
+        raw_bcc: A list of the message's Bcc header in it's original form.
+        to: A list of the message's To header with the email addresses only.
+        cc: A list of the message's Cc header with the email addresses only.
+        bcc: A list of the message's Bcc header with the email addresses only.
+        raw_from_name: A string of the from name, potentially encoded.
+        from_: A string of the email address of the sender.
+        from_name: A string with the senders name decoded.
+        raw_date: A string of the message date in it's original form.
+        date: A Datetime object with the message's date.
+        is_bulk: A boolean set to True when the message has the Precedence header set to bulk.
+        text: A string with the message's plain text body.
+        html: A string with the message's html body.
+        attachments: A list of Attachment objects.
+        html_text: A string of the text extracted from the html body.
+        has_attachments: A boolean indicating if the message has real attachments.
+
+        gmail_client: The gmail client.
+        message_data: The raw message data from the API.
+        gmail_id: The message id used for the API.
+        thread_id: The messgae thread ID.
+        label_ids: A list of labels.
+        snippet: A short snippet from the message.
+        is_seen: Whether the message is marked as read or not.
+        is_chat_message: If this message is a chat message.
     """
 
     def __init__(self, gmail_client: "gmail.GmailClient", message_data: dict):
@@ -150,7 +196,7 @@ class Message(BaseMessage):
         if message_data.get("raw"):
             self.message_format = "raw"
             self.email_object = utils.get_email_object(self.message_data["raw"])
-            self.process_message()
+            self._process_message()
 
     def __str__(self) -> str:
         return f"Message From: {self.from_}, Subject: {self.subject}, Date: {self.date}"
@@ -286,12 +332,10 @@ class Message(BaseMessage):
         self = cls(gmail_client, message_data)
         self.message_format = "full"
         self.email_object = utils.full_format_to_message_object(message_data["payload"])
-        self.process_message()
+        self._process_message()
         return self
 
-    def process_message(self):
-        self.is_seen = not "UNREAD" in self.label_ids
-        self.is_chat_message = "CHAT" in self.label_ids
+    def _process_message(self):
         self.in_reply_to = self.email_object["In-Reply-To"]
         self.references = self.email_object["References"]
         self.is_reply = bool(self.in_reply_to)
@@ -337,13 +381,42 @@ class MessageMetadata(BaseMessage):
 
         message_data (``dict``):
             The raw message data.
+    Attributes:
+        in_reply_to: The message id of the message this message replies to.
+        references: The message ids of the messages this message is a reply to.
+        is_reply: Whether the message is a reply or not.
+        message_id: A string of the the message id.
+        subject: A string of the message subject.
+        raw_from: A string of the message's From header which can be used when sending messages
+            to include the name.
+        raw_to: A list of the message's To header in it's original form.
+        raw_cc: A list of the message's Cc header in it's original form.
+        raw_bcc: A list of the message's Bcc header in it's original form.
+        to: A list of the message's To header with the email addresses only.
+        cc: A list of the message's Cc header with the email addresses only.
+        bcc: A list of the message's Bcc header with the email addresses only.
+        raw_from_name: A string of the from name, potentially encoded.
+        from_: A string of the email address of the sender.
+        from_name: A string with the senders name decoded.
+        raw_date: A string of the message date in it's original form.
+        date: A Datetime object with the message's date.
+        is_bulk: A boolean set to True when the message has the Precedence header set to bulk.
+
+        gmail_client: The gmail client.
+        message_data: The raw message data from the API.
+        gmail_id: The message id used for the API.
+        thread_id: The messgae thread ID.
+        label_ids: A list of labels.
+        snippet: A short snippet from the message.
+        is_seen: Whether the message is marked as read or not.
+        is_chat_message: If this message is a chat message.
     """
 
     def __init__(self, gmail_client: "gmail.GmailClient", message_data: dict) -> None:
         super().__init__(gmail_client, message_data)
-        self.process_message()
+        self._process_message()
 
-    def process_message(self):
+    def _process_message(self):
         headers = utils.invert_message_headers(self.message_data["payload"]["headers"])
         self.raw_date = headers.get("Date")
         self.date = utils.parse_date(self.raw_date)
@@ -353,6 +426,7 @@ class MessageMetadata(BaseMessage):
         self.in_reply_to = headers.get("In-Reply-To")
         self.references = headers.get("References")
         self.is_reply = bool(self.in_reply_to)
+        self.is_bulk = self.headers.get["Precedence"] == "bulk"
 
         # from, to, cc, bcc
         self.raw_from = headers.get("From")
@@ -392,6 +466,15 @@ class MessageMinimal(BaseMessage):
 
         message_data (``dict``):
             The raw message data.
+
+    Attributes:
+        gmail_client: The gmail client.
+        message_data: The raw message data from the API.
+        gmail_id: The message id used for the API.
+        thread_id: The messgae thread ID.
+        label_ids: A list of labels.
+        is_seen: Whether the message is marked as read or not.
+        is_chat_message: If this message is a chat message.
     """
 
     def __init__(self, gmail_client: "gmail.GmailClient", message_data: dict) -> None:
