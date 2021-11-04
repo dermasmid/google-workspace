@@ -118,12 +118,12 @@ import google_workspace
 
 gmail_client = google_workspace.gmail.GmailClient()
 
-def message_filter(message):
-    return "python" in message.subject
+def message_filter(history):
+    return "python" in history.message.subject
 
 @gmail_client.on_message(labels="inbox", filters=[message_filter])
-def handle_message(message):
-    message.forward(to="test@test.com")
+def handle_message(history):
+    history.message.forward(to="test@test.com")
 ```
 
 
