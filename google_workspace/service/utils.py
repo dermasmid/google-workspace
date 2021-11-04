@@ -5,6 +5,7 @@ import ssl
 import time
 import wsgiref
 from contextlib import contextmanager
+from http.client import IncompleteRead
 from socket import timeout
 from typing import List
 from urllib.parse import parse_qs, urlparse
@@ -25,6 +26,8 @@ ERRORS_TO_CATCH = (
     ConnectionResetError,
     ServerNotFoundError,
     ssl.SSLEOFError,  # ssl.SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1131)
+    OSError, # OSError: [Errno 101] Network is unreachable
+    IncompleteRead, # http.client.IncompleteRead: IncompleteRead(48 bytes read)
 )
 
 
