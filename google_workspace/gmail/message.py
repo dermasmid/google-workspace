@@ -177,7 +177,7 @@ class Message(BaseMessage):
         is_bulk: A boolean set to True when the message has the Precedence header set to bulk.
         text: A string with the message's plain text body.
         html: A string with the message's html body.
-        attachments: A list of Attachment objects.
+        attachments: A list of :obj:`~google_workspace.gmail.message.Attachment` objects.
         html_text: A string of the text extracted from the html body.
         has_attachments: A boolean indicating if the message has real attachments.
 
@@ -494,7 +494,20 @@ class MessageMinimal(BaseMessage):
 
 
 class Attachment:
-    def __init__(self, attachment_part):
+    """A file attachment.
+
+    Parameters:
+        attachment_part (``dict``):
+            The message part that is the attachment as a dict.
+
+    Attributes:
+        is_inline: A boolean indicating if this attachment is inline.
+        content_id: The content id.
+        filename: The attachment's file name.
+        payload: The raw attachment data.
+    """
+
+    def __init__(self, attachment_part: dict):
         self._part = attachment_part
         self.is_inline = attachment_part.get("Content-Disposition", "").startswith(
             "inline"
@@ -511,6 +524,13 @@ class Attachment:
         return data
 
     def download(self, path: str = None) -> str:
+        """Save the attachment data to disk.
+
+        Parameters:
+            path (``str``, *optional*):
+                A path to save the file to, if not set we default to the file name
+        """
+
         path = path or self.filename
         data = self.payload
         with open(path, "wb") as f:

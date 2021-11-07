@@ -26,8 +26,8 @@ ERRORS_TO_CATCH = (
     ConnectionResetError,
     ServerNotFoundError,
     ssl.SSLEOFError,  # ssl.SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1131)
-    OSError, # OSError: [Errno 101] Network is unreachable
-    IncompleteRead, # http.client.IncompleteRead: IncompleteRead(48 bytes read)
+    OSError,  # OSError: [Errno 101] Network is unreachable
+    IncompleteRead,  # http.client.IncompleteRead: IncompleteRead(48 bytes read)
 )
 
 

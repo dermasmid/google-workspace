@@ -4,6 +4,41 @@ from . import gmail, helper
 
 
 class History:
+    """A record of a change to the user's mailbox with one message.
+
+    Parameters:
+        gmail_client (:obj:`~google_workspace.gmail.GmailClient`):
+            The gmail_client.
+
+        history_data (``dict``):
+            The history data.
+
+        history_type (``str``):
+            The history type. Can have one of the following values: ``"messageAdded"``,
+            ``"messageDeleted"``, ``"labelAdded"``, ``"labelRemoved"``.
+
+        message_format (``str``, *optional*):
+            The format to download the message as. This only has an effect before you first access
+            the message attribute. Can have one of the following values: ``"minimal"``, ``"full"``,
+            ``"raw"``, ``"metadata"``. Defaults to "raw".
+
+    Attributes:
+        gmail_client: The gmail_client.
+        history_data: The history data.
+        history_type: A string of the histroy_type.
+        message_format: A string of the message_format.
+        label_ids: The message's label ids.
+        thread_id: The message's thread id.
+        gmail_id: The message's gmail id.
+        modified_labels: If the history_type is labelAdded or labelRemoved this will contain
+            a list of the modified lables.
+        message_added: A boolean indicating of the history_type is messageAdded.
+        message_deleted: A boolean indicating of the history_type is messageDeleted.
+        label_added: A boolean indicating of the history_type is labelAdded.
+        label_removed: A boolean indicating of the history_type is labelRemoved.
+        message: The message its self. will be one of the message objects based on message_format.
+    """
+
     def __init__(
         self,
         gmail_client: "gmail.GmailClient",
@@ -39,7 +74,30 @@ class History:
         return f"History {self.history_type} Message ID {self.gmail_id} Labels {self.label_ids}"
 
 
-class listHistoryResponse:
+class ListHistoryResponse:
+    """A list of histories returned be get_history.
+
+    Parameters:
+        gmail_client (:obj:`~google_workspace.gmail.GmailClient`):
+            The gmail_client.
+
+        start_history_id (``int``):
+            The history to start to list from.
+
+        history_types (``lsit``, *optional*):
+            Limit the results to only these history types. Can have one of the following values: ``"messageAdded"``,
+            ``"messageDeleted"``, ``"labelAdded"``, ``"labelRemoved"``. Defaults to None.
+
+        label_id (``str``, *optional*):
+            Limit results to only histories with this label id. Defaults to None.
+
+        max_results: (``int``, *optional*):
+            Maximum number of history records to return. Defaults to None.
+
+    Attributes:
+        history_id: The ID of the mailbox's current history record.
+    """
+
     def __init__(
         self,
         gmail_client: "gmail.GmailClient",

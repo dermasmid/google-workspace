@@ -9,3 +9,4 @@ This is a list of the all the messages classes.
     message
     message-minimal
     message-metadata
+    attachment

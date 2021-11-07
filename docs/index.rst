@@ -39,3 +39,4 @@ run the following:
    api/gmail/thread
    api/gmail/label
    api/gmail/handler
+   api/gmail/histories/index

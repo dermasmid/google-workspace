@@ -271,7 +271,7 @@ class GmailClient:
 
             message_format (``str``, *optional*):
                 In which format to retrieve the messages. Can have one of the following values:
-                ``"minimal"``, ``"full"``, ``"metadata"``. Defaults to "raw".
+                ``"minimal"``, ``"full"``, ``"metadata"``. Defaults to "full".
 
             batch (``bool``, *optional*):
                 Whether to use batch requests when fetching the threads. recommended when fetching
@@ -454,7 +454,7 @@ class GmailClient:
             Literal["messageAdded", "messageDeleted", "labelAdded", "labelRemoved"]
         ] = None,
         max_results: int = None,
-    ) -> "histories.listHistoryResponse":
+    ) -> "histories.ListHistoryResponse":
         """Get everything that happened in the account since start_history_id.
 
         Parameters:
@@ -474,7 +474,7 @@ class GmailClient:
             :obj:`~google_workspace.gmail.histories.listHistoryResponse`: A iterable of histories.
         """
 
-        return histories.listHistoryResponse(
+        return histories.ListHistoryResponse(
             self,
             start_history_id,
             history_types,
