@@ -56,6 +56,14 @@ class GoogleService(Resource):
         workdir (``str``, *optional*):
             Where to store the session files and where to look
             for the creds file. Defaults to None.
+
+    Attributes:
+        version: A string of the api version.
+        api: A string of the api.
+        workdir: A Path object of the working directory.
+        session_file: A string of the session file if session was a string.
+        session_data: A dict of the session data, including the token and addtional values set by set_value().
+        is_authenticated: A boolean indicating if the service is authenticated.
     """
 
     def __init__(
@@ -325,6 +333,12 @@ class GoogleService(Resource):
         self._save_session()
 
     def export_session(self) -> dict:
+        """Export the session data, updating the token first.
+
+        Returns:
+            dict: The session data.
+        """
+
         self._retrieve_session_data()
         return self.session_data
 
