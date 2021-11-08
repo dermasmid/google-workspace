@@ -509,10 +509,11 @@ class Attachment:
 
     def __init__(self, attachment_part: dict):
         self._part = attachment_part
-        self.is_inline = attachment_part.get("Content-Disposition", "").startswith(
-            "inline"
-        )
-        self.content_id = attachment_part.get("Content-ID")
+        # Content-Disposition might be a Header in some cases.
+        self.is_inline = utils.decode_if_header(
+            attachment_part["Content-Disposition"]
+        ).startswith("inline")
+        self.content_id = attachment_part["Content-ID"]
 
     @property
     def filename(self) -> str:

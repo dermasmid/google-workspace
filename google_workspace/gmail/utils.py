@@ -3,7 +3,7 @@ import email
 import os
 import textwrap
 from datetime import date, datetime
-from email.header import decode_header
+from email.header import Header, decode_header
 from email.message import Message
 from email.mime.application import MIMEApplication
 from email.mime.audio import MIMEAudio
@@ -82,7 +82,7 @@ def encode_if_not_english(string: Union[str, None]) -> Union[str, None]:
 def get_email_addresses(raw: Union[list, None]) -> Union[list, None]:
     result = []
     if raw:
-        raw = getaddresses([raw])
+        raw = getaddresses([decode_if_header(raw)])
         for _, email in raw:
             result.append(email.lower().strip())
     return result
@@ -90,7 +90,7 @@ def get_email_addresses(raw: Union[list, None]) -> Union[list, None]:
 
 def get_email_name(raw: Union[str, None]) -> Union[str, None]:
     if raw:
-        raw = getaddresses([raw])
+        raw = getaddresses([decode_if_header(raw)])
         for name, _ in raw:
             return name
     return raw
@@ -110,6 +110,12 @@ def get_from_info(raw_from: Union[str, None]):
     return raw_from, raw_from_name, from_, from_name
 
 
+def decode_if_header(data: Union[list, None, Header]) -> Union[list, None]:
+    if isinstance(data, Header):
+        return decode(data)
+    return data
+
+
 def parse_date(date: str) -> datetime:
     if not date is None:  # for chat messages that have no date
         if "," in date:
@@ -123,7 +129,7 @@ def parse_date(date: str) -> datetime:
     return data
 
 
-def decode(header: Union[str, None]) -> Union[str, None]:
+def decode(header: Union[list, None, Header]) -> Union[str, None]:
     if not header is None:
         decode_data = decode_header(header)[0]
         data, encoding = decode_data
