@@ -3,3 +3,4 @@ google-auth-oauthlib
 chardet
 python-magic
 trython
+typing_extensions

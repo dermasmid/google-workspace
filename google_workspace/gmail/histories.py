@@ -1,4 +1,6 @@
-from typing import Iterable, Literal
+from typing import Iterable
+
+from typing_extensions import Literal
 
 from . import gmail, helper
 

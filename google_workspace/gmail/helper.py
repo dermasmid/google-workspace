@@ -1,7 +1,8 @@
-from typing import Generator, Iterable, Literal, Type, Union
+from typing import Generator, Iterable, Type, Union
 
 import trython
 from googleapiclient.errors import HttpError
+from typing_extensions import Literal
 
 from .. import service
 from . import gmail, message, thread, utils

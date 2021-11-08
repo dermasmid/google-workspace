@@ -1,4 +1,6 @@
-from typing import Generator, Literal, Type
+from typing import Generator, Type
+
+from typing_extensions import Literal
 
 from . import gmail, message
 from .utils import make_label_dict

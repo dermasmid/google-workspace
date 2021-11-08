@@ -1,4 +1,6 @@
-from typing import Any, Callable, Iterable, List, Literal, Union
+from typing import Any, Callable, Iterable, List, Union
+
+from typing_extensions import Literal
 
 from . import histories, utils
 

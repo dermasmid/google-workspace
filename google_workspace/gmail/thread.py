@@ -1,6 +1,8 @@
-from typing import Generator, Literal, Type, Union
+from typing import Generator, Type, Union
 
-from . import gmail, utils, message
+from typing_extensions import Literal
+
+from . import gmail, message, utils
 
 
 class Thread:

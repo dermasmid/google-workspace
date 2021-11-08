@@ -14,10 +14,11 @@ from email.parser import BytesParser
 from email.utils import getaddresses
 from html.parser import HTMLParser
 from mimetypes import guess_type
-from typing import Iterable, Literal, Tuple, Union
+from typing import Iterable, Tuple, Union
 
 import magic
 from googleapiclient.errors import HttpError
+from typing_extensions import Literal
 
 from . import gmail, histories, message
 
@@ -492,7 +493,12 @@ def full_format_to_message_object(
                 full_format_to_message_object(part["parts"], message_part)
                 message.attach(message_part)
             else:
-                maintype, subtype = part["mimeType"].split("/", 1)
+                try:
+                    maintype, subtype = part["mimeType"].split("/", 1)
+                except ValueError:
+                    # There's no valid mimetype, I saw the python parser set the mimetype to text/plain
+                    # when it did not understand the mimetype.
+                    maintype, subtype = "text", "plain"
                 message_part = MIMEBase(maintype, subtype)
                 for header in part["headers"]:
                     message_part[header["name"]] = header["value"]

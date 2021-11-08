@@ -6,9 +6,10 @@ import time
 from datetime import date
 from queue import Queue
 from threading import Event, Thread
-from typing import Any, Callable, Generator, Iterable, Literal, Tuple, Type, Union
+from typing import Any, Callable, Generator, Iterable, Tuple, Type, Union
 
 from googleapiclient.errors import HttpError
+from typing_extensions import Literal
 
 from .. import service as service_module
 from . import helper, histories, message, thread, utils

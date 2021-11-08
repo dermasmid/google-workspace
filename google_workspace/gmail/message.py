@@ -1,4 +1,6 @@
-from typing import Iterable, Literal, Tuple, Union
+from typing import Iterable, Tuple, Union
+
+from typing_extensions import Literal
 
 from . import gmail, thread, utils
 
