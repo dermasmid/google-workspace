@@ -11,3 +11,4 @@ dist/
 *secret*.json
 *creds.json
 docs/_build
+.tox
