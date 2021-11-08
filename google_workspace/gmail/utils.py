@@ -1,5 +1,4 @@
 import base64
-import email
 import os
 import textwrap
 from datetime import date, datetime
@@ -11,6 +10,7 @@ from email.mime.base import MIMEBase
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.parser import BytesParser
 from email.utils import getaddresses
 from html.parser import HTMLParser
 from mimetypes import guess_type
@@ -144,7 +144,8 @@ def decode(header: Union[list, None, Header]) -> Union[str, None]:
 
 def get_email_object(message_data: str) -> Message:
     b64decoded = base64.urlsafe_b64decode(message_data)
-    return email.message_from_bytes(b64decoded)
+    parser = BytesParser()
+    return parser.parsebytes(b64decoded)
 
 
 def make_message(
