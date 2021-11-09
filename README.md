@@ -22,11 +22,11 @@ pip install -U git+https://github.com/dermasmid/google-workspace.git
 Take a look at the full documentation here [https://google-workspace.readthedocs.io/](https://google-workspace.readthedocs.io/)
 
 
-# Getting project credentinals
+# Getting project credentials
 
 You need to get a client secret file from [the google console](https://console.developers.google.com/) and you need to enable the api you want to use, just Google it.
 
-After you saved the credentinals json file to your workdir - you are all set!
+After you saved the credentials json file to your workdir - you are all set!
 
 
 # Quick start's

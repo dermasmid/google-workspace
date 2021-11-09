@@ -13,7 +13,7 @@ Installation
 
 Quick start
 ============
-After you have got your credentinals from the google cloud console and put them inside your working directory, You can
+After you have got your credentials from the google cloud console and put them inside your working directory, You can
 run the following:
 
 .. code-block:: python
