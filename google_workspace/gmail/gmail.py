@@ -394,7 +394,6 @@ class GmailClient:
         else:
             if not self.history_id is None:
                 self.service.set_value("history_id", int(self.history_id) - 1)
-                self.service.save_service_state()
 
         # Stop the workers.
         for _ in range(self.workers):
