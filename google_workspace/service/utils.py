@@ -38,34 +38,34 @@ default_versions = {
 
 
 def get_creds_file(creds):
-    # check if thers more then one and throw an error
     valid_creds = []
     if os.path.exists(creds):
         return creds
-    else:
-        jsons = filter(
-            lambda x: x[1] == ".json", iter(os.path.splitext(x) for x in os.listdir())
+    json_files = filter(
+        lambda x: x[1] == ".json", iter(os.path.splitext(x) for x in os.listdir())
+    )
+    for json_file in json_files:
+        json_file = "".join(json_file)
+        with open(json_file, "r") as f:
+            try:
+                json_data = json.load(f)
+            except json.decoder.JSONDecodeError:
+                continue
+        if not json_data:
+            continue
+        root_element = json_data.get(list(json_data.keys())[0])
+        if isinstance(root_element, dict) and root_element.get("client_id"):
+            valid_creds.append(json_file)
+    if len(valid_creds) > 1:
+        raise Exception(
+            "I found more then one valid client secrets file, please remove one or explictly pass the path to the one you want to use"
         )
-        for j in jsons:
-            json_file = "".join(j)
-            with open(json_file, "r") as f:
-                try:
-                    json_data = json.load(f)
-                except json.decoder.JSONDecodeError:
-                    continue
-            root_element = json_data.get(list(json_data.keys())[0])
-            if isinstance(root_element, dict) and root_element.get("client_id"):
-                valid_creds.append(json_file)
-        if len(valid_creds) > 1:
-            raise Exception(
-                "I found more then one valid client secrets file, please remove one or explictly pass the path to the one you want to use"
-            )
-        try:
-            return valid_creds[0]
-        except IndexError:
-            raise Exception(
-                "I found no creds json file!!!! please go to the google console and download the creds file."
-            )
+    try:
+        return valid_creds[0]
+    except IndexError:
+        raise Exception(
+            "I found no creds json file!!!! please go to the google console and download the creds file."
+        )
 
 
 def get_default_scopes(api: str) -> List[str]:

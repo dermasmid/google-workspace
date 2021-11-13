@@ -428,7 +428,7 @@ class MessageMetadata(BaseMessage):
         self.in_reply_to = headers.get("In-Reply-To")
         self.references = headers.get("References")
         self.is_reply = bool(self.in_reply_to)
-        self.is_bulk = self.headers.get["Precedence"] == "bulk"
+        self.is_bulk = headers.get["Precedence"] == "bulk"
 
         # from, to, cc, bcc
         self.raw_from = headers.get("From")
